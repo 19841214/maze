@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vocab Quest 3D - 視覺強化版</title>
+    <title>Vocab Quest 3D - 穩定版</title>
     <style>
         :root {
             --primary: #5865f2;
@@ -16,7 +16,7 @@
         body { margin: 0; background: var(--bg); color: #e0e0e0; font-family: 'Inter', 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; }
         canvas { display: block; filter: contrast(1.1) brightness(1.1); }
 
-        /* HUD - 現代化毛玻璃風格 */
+        /* HUD */
         #hud {
             position: absolute; top: 20px; left: 20px; z-index: 10;
             background: var(--panel-bg); padding: 20px; border-radius: 16px;
@@ -50,9 +50,11 @@
         }
         button:hover { background: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
         
-        #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        /* Loading & Debug */
+        #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(88,101,242,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite cubic-bezier(0.5, 0.1, 0.4, 0.9); }
         @keyframes spin { to { transform: rotate(360deg); } }
+        #debug-log { margin-top: 20px; color: #666; font-size: 12px; font-family: monospace; max-width: 80%; text-align: center; }
 
         #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         #message-box {
@@ -68,7 +70,8 @@
 
 <div id="loading">
     <div class="spinner"></div>
-    <p style="margin-top: 20px; letter-spacing: 2px; font-size: 14px; opacity: 0.7;">正在載入 3D 地牢資料...</p>
+    <p style="margin-top: 20px; letter-spacing: 2px; font-size: 14px; opacity: 0.7;">正在初始化地牢...</p>
+    <div id="debug-log"></div>
 </div>
 
 <div id="win-screen">
@@ -81,7 +84,7 @@
 
 <div id="hud">
     <h1>VOCAB QUEST</h1>
-    <p id="player-count">● 在線探險家: 1</p>
+    <p id="player-count">● 連線狀態檢查中...</p>
     <div class="progress-container">
         <p id="stats" style="margin-bottom: 5px;">團隊進度: 0%</p>
         <div class="progress-bar"><div id="progress-fill"></div></div>
@@ -121,10 +124,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'vocab-v2-deluxe';
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'vocab-v2-stable';
 
 // --- 2. 遊戲設定 ---
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUrIh3_ELuEAFnI6VRdWWI8AnmkJKh_bplW5PTw3PgQHAyyhXgUZokKOLC0eRcBv9T-XEPti1OlEHI/pub?gid=0&single=true&output=csv";
+
+// 內建備用題庫 (防止 Google Sheet 讀取失敗)
+const DEFAULT_QUESTIONS = [
+    { q: "Choose the Past Participle of 'Eat'", a: "Eaten", b: ["Ate", "Eating", "Eats"] },
+    { q: "Choose the correct form: She has ___ home.", a: "gone", b: ["go", "went", "going"] },
+    { q: "Which one is an adjective?", a: "Beautiful", b: ["Beauty", "Beautifully", "Beautify"] },
+    { q: "Synonym of 'Happy'", a: "Joyful", b: ["Sad", "Angry", "Tired"] },
+    { q: "Antonym of 'Big'", a: "Small", b: ["Huge", "Large", "Giant"] }
+];
 
 let questionBank = [];
 let otherPlayers = {};
@@ -144,14 +156,58 @@ const player = { x: 1.5, y: 7.5, dir: -Math.PI/2, v: 0, w: 0, fov: Math.PI / 3, 
 const monster = { x: 13.5, y: 7.5, speed: 0.014 };
 const keys = {};
 let userId = "", isMonsterQuiz = false, monsterCombo = 0, isGameOver = false;
+let isOfflineMode = false;
 
-// --- 3. 多人連線 ---
-const initMultiplayer = async () => {
-    try { await signInAnonymously(auth); } catch (e) { console.error(e); }
+// --- 3. 初始化邏輯 (強化容錯) ---
+const logDebug = (msg) => {
+    console.log(msg);
+    document.getElementById('debug-log').innerText = msg;
+};
+
+const startGame = () => {
+    document.getElementById('loading').style.opacity = 0;
+    setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+    gameLoop();
+};
+
+const initSystem = async () => {
+    // A. 載入題庫
+    try {
+        logDebug("正在讀取題庫...");
+        const res = await fetch(SHEET_URL);
+        if (!res.ok) throw new Error("Network response was not ok");
+        const csv = await res.text();
+        const lines = csv.split('\n').slice(1);
+        questionBank = lines.map(l => {
+            const c = l.split(',').map(s => s.replace(/"/g, '').trim());
+            return { q: c[0], a: c[1], b: [c[2], c[3], c[4]] };
+        }).filter(q => q.q);
+        logDebug("雲端題庫讀取成功");
+    } catch(e) { 
+        console.warn("Sheet Error, using default", e);
+        questionBank = DEFAULT_QUESTIONS;
+        logDebug("使用備用題庫 (雲端讀取失敗)");
+    }
+
+    // B. 登入 Firebase
+    try {
+        logDebug("正在連線多人伺服器...");
+        await signInAnonymously(auth);
+    } catch (err) {
+        console.error("Auth Failed", err);
+        logDebug("連線失敗: 啟動單機模式");
+        isOfflineMode = true;
+        document.getElementById('player-count').innerText = "● 離線模式 (單機遊玩)";
+        startGame(); // 直接開始，不等待 Auth
+        return;
+    }
+
     onAuthStateChanged(auth, (user) => {
         if (user) {
             userId = user.uid;
             document.getElementById('user-id-display').innerText = `ID: ${userId}`;
+            
+            // 監聽其他玩家
             const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'players');
             onSnapshot(playersRef, (snap) => {
                 snap.docChanges().forEach(c => {
@@ -160,6 +216,8 @@ const initMultiplayer = async () => {
                 });
                 document.getElementById('player-count').innerText = `● 在線探險家: ${Object.keys(otherPlayers).length + 1}`;
             });
+
+            // 監聽世界狀態
             const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState');
             onSnapshot(worldRef, (snap) => {
                 if (snap.exists()) {
@@ -172,42 +230,46 @@ const initMultiplayer = async () => {
                     updateStats();
                 }
             });
+
             setInterval(syncMyPosition, 100);
-            loadQuestions();
+            startGame();
         }
     });
+
+    // C. 強制逾時機制 (5秒後無論如何都開始)
+    setTimeout(() => {
+        if (document.getElementById('loading').style.display !== 'none') {
+            logDebug("連線逾時，強制進入遊戲");
+            startGame();
+        }
+    }, 5000);
 };
 
+// --- 同步邏輯 ---
 async function syncMyPosition() {
-    if (!userId || isGameOver) return;
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', userId), { x: player.x, y: player.y, dir: player.dir, time: Date.now() }, { merge: true });
+    if (!userId || isGameOver || isOfflineMode) return;
+    try {
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', userId), { x: player.x, y: player.y, dir: player.dir, time: Date.now() }, { merge: true });
+    } catch(e) {}
 }
 
 async function syncWallBroken(y, x) {
-    const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState');
-    const snap = await getDoc(worldRef);
-    let currentWalls = snap.exists() ? snap.data().brokenWalls || [] : [];
-    let currentSolved = snap.exists() ? snap.data().totalSolved || 0 : 0;
-    const key = `${y},${x}`;
-    if (!currentWalls.includes(key)) {
-        currentWalls.push(key);
-        await setDoc(worldRef, { brokenWalls: currentWalls, totalSolved: currentSolved + 1 }, { merge: true });
+    if (isOfflineMode) {
+        player.totalSolved++;
+        updateStats();
+        return;
     }
-}
-
-// --- 4. 遊戲核心邏輯 ---
-async function loadQuestions() {
     try {
-        const res = await fetch(SHEET_URL);
-        const csv = await res.text();
-        const lines = csv.split('\n').slice(1);
-        questionBank = lines.map(l => {
-            const c = l.split(',').map(s => s.replace(/"/g, '').trim());
-            return { q: c[0], a: c[1], b: [c[2], c[3], c[4]] };
-        }).filter(q => q.q);
-    } catch(e) {}
-    document.getElementById('loading').style.display = 'none';
-    gameLoop();
+        const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState');
+        const snap = await getDoc(worldRef);
+        let currentWalls = snap.exists() ? snap.data().brokenWalls || [] : [];
+        let currentSolved = snap.exists() ? snap.data().totalSolved || 0 : 0;
+        const key = `${y},${x}`;
+        if (!currentWalls.includes(key)) {
+            currentWalls.push(key);
+            await setDoc(worldRef, { brokenWalls: currentWalls, totalSolved: currentSolved + 1 }, { merge: true });
+        }
+    } catch(e) { console.error("Sync Error", e); }
 }
 
 function updateStats() {
@@ -221,6 +283,7 @@ function updateStats() {
     }
 }
 
+// --- 4. 遊戲核心邏輯 ---
 function showMessage(text, color = "var(--primary)") {
     const box = document.getElementById('message-box');
     box.innerText = text; box.style.borderColor = color; box.style.display = 'block';
@@ -259,7 +322,7 @@ function updateEntities() {
     monster.x += (dx/dist) * monster.speed; monster.y += (dy/dist) * monster.speed;
 }
 
-// --- 5. 繪圖渲染 (視覺升級核心) ---
+// --- 5. 繪圖渲染 ---
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -267,7 +330,6 @@ function render() {
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     const w = canvas.width, h = canvas.height;
     
-    // 背景：動態漸層
     const skyGrad = ctx.createLinearGradient(0, 0, 0, h/2);
     skyGrad.addColorStop(0, '#020205'); skyGrad.addColorStop(1, '#0c0c1a');
     ctx.fillStyle = skyGrad; ctx.fillRect(0,0,w,h/2);
@@ -278,12 +340,11 @@ function render() {
 
     const zBuffer = new Array(w).fill(Infinity);
     
-    // 3D 牆壁 (光影修正版)
     for (let i = 0; i < w; i++) {
         const rayAngle = (player.dir - player.fov/2) + (i/w)*player.fov;
         let d = 0, hit = 0, x = player.x, y = player.y;
         const sx = Math.cos(rayAngle)*0.01, sy = Math.sin(rayAngle)*0.01;
-        let side = 0; // 0 for vertical, 1 for horizontal
+        let side = 0;
 
         while (hit === 0 && d < 14) {
             x += sx; d += 0.01; side = 0;
@@ -296,18 +357,15 @@ function render() {
         zBuffer[i] = realD;
         const wh = h / realD;
         
-        // 視覺魔法：根據 side 調整亮度產生成立體轉角
         let baseHue = hit === 2 ? 0 : 230;
-        let brightness = side === 1 ? 40 : 25; // 側面較暗
-        brightness -= realD * 2.5; // 霧氣距離衰減
+        let brightness = side === 1 ? 40 : 25;
+        brightness -= realD * 2.5;
         
         if (hit === 3) ctx.fillStyle = `hsl(145, 80%, ${Math.max(10, 45 - realD*2.5)}%)`;
         else ctx.fillStyle = `hsl(${baseHue}, ${hit === 2 ? '70%' : '40%'}, ${Math.max(5, brightness)}%)`;
-        
         ctx.fillRect(i, (h-wh)/2, 1, wh);
     }
 
-    // Sprite 渲染 (幽靈怪物, 其他玩家)
     const sprites = [
         { x: monster.x, y: monster.y, type: 'monster' },
         { x: 13.5, y: 1.5, type: 'goal' }
@@ -336,7 +394,6 @@ function render() {
                     g.addColorStop(0, '#fff'); g.addColorStop(0.3, 'rgba(46, 213, 115, 0.8)'); g.addColorStop(1, 'transparent');
                     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, h/2+b, sh/3, 0, Math.PI*2); ctx.fill();
                 } else if (s.type === 'monster') {
-                    // 脈動幽靈效果
                     const pulse = 0.8 + Math.sin(Date.now()/100)*0.2;
                     const g = ctx.createRadialGradient(sx, h/2, 0, sx, h/2, sh/2);
                     g.addColorStop(0, `rgba(255, 0, 0, ${pulse})`); g.addColorStop(1, 'transparent');
@@ -364,7 +421,6 @@ function drawMinimap(w, h) {
             if (worldMap[y][x] === 2) { ctx.fillStyle = 'var(--danger)'; ctx.fillRect(ox+x*s, oy+y*s, s-1, s-1); }
         }
     }
-    // 標記
     ctx.fillStyle = '#2ed573'; ctx.beginPath(); ctx.arc(ox+13.5*s, oy+1.5*s, 4, 0, 7); ctx.fill();
     ctx.fillStyle = '#f1c40f'; ctx.save(); ctx.translate(ox+player.x*s, oy+player.y*s); ctx.rotate(player.dir);
     ctx.beginPath(); ctx.moveTo(5,0); ctx.lineTo(-4,-4); ctx.lineTo(-4,4); ctx.fill(); ctx.restore();
@@ -376,8 +432,7 @@ function drawMinimap(w, h) {
 function triggerQuiz(x, y) {
     const overlay = document.getElementById('quiz-overlay');
     if (overlay.style.display === 'flex') return;
-    const quiz = questionBank[Math.floor(Math.random() * questionBank.length)];
-    if (!quiz) return;
+    const quiz = questionBank[Math.floor(Math.random() * questionBank.length)] || DEFAULT_QUESTIONS[0];
     
     document.getElementById('q-text').innerText = quiz.q;
     const opts = [quiz.a, ...quiz.b].sort(() => Math.random() - 0.5);
@@ -414,7 +469,7 @@ function triggerQuiz(x, y) {
 
 window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
 window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-initMultiplayer();
+initSystem();
 </script>
 </body>
 </html>
