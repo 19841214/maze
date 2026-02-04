@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vocab Quest 3D - 穩定版</title>
+    <title>Vocab Quest 3D - 英雄榜版</title>
     <style>
         :root {
             --primary: #5865f2;
             --danger: #ff4757;
-            --success: #2ed573;
-            --warning: #ffa502;
+            --success: #00b894;
+            --warning: #fdcb6e;
+            --gold: #ffeaa7;
             --bg: #020205;
-            --panel-bg: rgba(10, 10, 20, 0.85);
+            --panel-bg: rgba(15, 15, 25, 0.95);
         }
-        body { margin: 0; background: var(--bg); color: #e0e0e0; font-family: 'Inter', 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; }
-        canvas { display: block; filter: contrast(1.1) brightness(1.1); }
+        body { margin: 0; background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
+        canvas { display: block; }
 
         /* HUD */
         #hud {
             position: absolute; top: 20px; left: 20px; z-index: 10;
             background: var(--panel-bg); padding: 20px; border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px);
             pointer-events: none; width: 260px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
         }
         #hud h1 { margin: 0; font-size: 20px; letter-spacing: 1px; color: #fff; text-shadow: 0 0 10px var(--primary); }
@@ -29,55 +30,159 @@
         .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
         #progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--success); }
 
-        /* Quiz Overlay */
+        /* Login Overlay */
+        #login-overlay {
+            position: fixed; inset: 0; background: rgba(2, 2, 5, 0.95); z-index: 20000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        .login-box {
+            background: #1e1e2f; padding: 40px; border-radius: 24px; border: 2px solid var(--primary);
+            text-align: center; width: 90%; max-width: 400px; box-shadow: 0 0 50px rgba(88, 101, 242, 0.3);
+        }
+        .login-input {
+            width: 80%; padding: 15px; border-radius: 12px; border: 1px solid #444;
+            background: #2b2b3d; color: white; font-size: 18px; margin-bottom: 20px; text-align: center; outline: none;
+        }
+        .login-btn {
+            padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 12px;
+            font-size: 18px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .login-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--primary); }
+
+        /* Win Screen (Epic Style) */
+        #win-screen {
+            position: fixed; inset: 0; background: rgba(5, 5, 10, 0.95); z-index: 10000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; backdrop-filter: blur(15px);
+        }
+        .win-title {
+            font-size: 4rem; color: var(--success); text-shadow: 0 0 30px var(--success);
+            margin-bottom: 10px; animation: slideDown 0.8s ease-out;
+        }
+        .win-stats-card {
+            background: rgba(255, 255, 255, 0.05); padding: 30px; border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1); width: 90%; max-width: 500px;
+            margin: 20px 0; animation: fadeIn 1s ease-out 0.5s backwards;
+        }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        .mvp-list { margin-top: 20px; text-align: left; }
+        .mvp-item { color: var(--gold); font-weight: bold; margin: 5px 0; font-size: 16px; display: flex; align-items: center; gap: 10px; }
+        .rank-badge { background: var(--gold); color: black; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Crosshair & HP */
+        #crosshair {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            display: flex; flex-direction: column; align-items: center; pointer-events: none;
+        }
+        #wall-hp-bar {
+            width: 140px; height: 12px; background: rgba(0,0,0,0.8); border: 2px solid #fff; border-radius: 8px; 
+            margin-top: 15px; overflow: hidden; display: none; box-shadow: 0 0 10px var(--warning);
+        }
+        #wall-hp-fill { width: 0%; height: 100%; background: var(--warning); transition: width 0.2s; }
+        #wall-hp-text { font-size: 16px; font-weight: bold; text-shadow: 1px 1px 3px black; margin-top: 5px; display: none; color: var(--warning); }
+
+        /* Controls */
+        #mobile-controls {
+            position: absolute; bottom: 30px; right: 30px; z-index: 20;
+            display: none; flex-direction: column; align-items: center; gap: 10px;
+        }
+        .control-row { display: flex; gap: 15px; }
+        .dpad-btn {
+            width: 65px; height: 65px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white; font-size: 24px; display: flex; align-items: center; justify-content: center;
+            touch-action: manipulation; backdrop-filter: blur(4px); transition: background 0.1s;
+        }
+        .dpad-btn:active { background: var(--primary); border-color: var(--primary); }
+        @media (max-width: 1024px) { #mobile-controls { display: flex; } }
+
+        /* Quiz */
         #quiz-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.92);
+            position: absolute; inset: 0; background: rgba(0,0,0,0.95);
             display: none; align-items: center; justify-content: center; z-index: 1000;
-            backdrop-filter: blur(15px);
+            backdrop-filter: blur(10px);
         }
         .quiz-card {
-            background: #11111d; width: 90%; max-width: 550px; padding: 45px;
-            border-radius: 30px; border: 1px solid var(--primary); text-align: center;
-            box-shadow: 0 0 60px rgba(88, 101, 242, 0.3);
+            background: #11111d; width: 90%; max-width: 600px; padding: 40px;
+            border-radius: 24px; border: 2px solid var(--primary); text-align: center;
+            box-shadow: 0 0 60px rgba(88, 101, 242, 0.3); position: relative; overflow: hidden;
         }
         .monster-mode { border-color: var(--danger) !important; box-shadow: 0 0 60px rgba(255, 71, 87, 0.4) !important; }
-        .question { font-size: 28px; font-weight: 700; margin-bottom: 35px; color: #fff; line-height: 1.4; }
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .question { font-size: 26px; font-weight: 700; margin-bottom: 30px; color: #fff; line-height: 1.4; min-height: 60px; display: flex; align-items: center; justify-content: center; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         button {
-            padding: 20px; font-size: 18px; border: none; border-radius: 15px;
-            background: rgba(255, 255, 255, 0.04); color: #fff; cursor: pointer;
-            transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;
+            padding: 18px; font-size: 18px; border: none; border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08); color: #fff; cursor: pointer;
+            transition: all 0.2s; border: 1px solid rgba(255, 255, 255, 0.1); font-weight: 600;
         }
-        button:hover { background: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
-        
-        /* Loading & Debug */
+        button:hover { background: var(--primary); transform: scale(1.02); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Feedback */
+        #feedback-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.95);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20;
+        }
+        #feedback-icon { font-size: 70px; margin-bottom: 20px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        #feedback-text { font-size: 28px; font-weight: bold; padding: 0 20px; }
+        #feedback-sub { font-size: 18px; color: #ccc; margin-top: 15px; max-width: 80%; line-height: 1.4; }
+
+        #monster-status {
+            position: absolute; top: 20px; right: 20px; padding: 10px 20px;
+            background: rgba(0,0,0,0.7); border-radius: 20px; border: 1px solid var(--danger); color: var(--danger);
+            font-size: 16px; font-weight: bold; display: none; box-shadow: 0 0 15px rgba(255, 71, 87, 0.3);
+        }
+
         #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(88,101,242,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite cubic-bezier(0.5, 0.1, 0.4, 0.9); }
         @keyframes spin { to { transform: rotate(360deg); } }
-        #debug-log { margin-top: 20px; color: #666; font-size: 12px; font-family: monospace; max-width: 80%; text-align: center; }
-
-        #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        
         #message-box {
             position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
             padding: 15px 35px; border-radius: 100px; background: var(--panel-bg);
             border: 1px solid var(--primary); font-weight: bold; display: none; z-index: 100;
             backdrop-filter: blur(8px); animation: fadeIn 0.3s;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
     </style>
 </head>
 <body>
 
 <div id="loading">
     <div class="spinner"></div>
-    <p style="margin-top: 20px; letter-spacing: 2px; font-size: 14px; opacity: 0.7;">正在初始化地牢...</p>
-    <div id="debug-log"></div>
+    <p style="margin-top: 20px; letter-spacing: 2px; font-size: 14px; opacity: 0.7;">正在同步團隊地牢...</p>
+</div>
+
+<div id="login-overlay" style="display: none;">
+    <div class="login-box">
+        <h2>輸入您的姓名</h2>
+        <input type="text" id="player-name-input" class="login-input" placeholder="例如: Kevin" maxlength="10">
+        <button class="login-btn" onclick="submitName()">開始探險</button>
+    </div>
 </div>
 
 <div id="win-screen">
-    <h1 style="color: var(--success); font-size: 64px; text-shadow: 0 0 30px var(--success);">MISSION ACCOMPLISHED</h1>
-    <p style="font-size: 24px; opacity: 0.8; margin-top: 10px;">團隊成功逃離地牢！單字力大幅提升。</p>
-    <button onclick="location.reload()" style="margin-top: 40px; background: var(--success); padding: 15px 50px;">重新開始探索</button>
+    <div class="win-title">🏆 任務達成！</div>
+    <div class="win-stats-card">
+        <div class="stat-row">
+            <span>您的貢獻 (My Score):</span>
+            <span id="my-final-score" style="color: var(--success); font-weight: bold;">0</span>
+        </div>
+        <div class="stat-row">
+            <span>團隊總分 (Team Total):</span>
+            <span id="team-final-score">0</span>
+        </div>
+        
+        <div class="mvp-list">
+            <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">👑 榮譽英雄榜 (Top 3 MVPs)</div>
+            <div id="mvp-container">載入中...</div>
+        </div>
+    </div>
+    <button onclick="location.reload()" class="login-btn" style="background: var(--success);">再次挑戰</button>
 </div>
 
 <div id="message-box"></div>
@@ -86,10 +191,30 @@
     <h1>VOCAB QUEST</h1>
     <p id="player-count">● 連線狀態檢查中...</p>
     <div class="progress-container">
-        <p id="stats" style="margin-bottom: 5px;">團隊進度: 0%</p>
+        <p id="stats" style="margin-bottom: 5px;">團隊破牆總數: 0</p>
         <div class="progress-bar"><div id="progress-fill"></div></div>
     </div>
-    <p id="goal-info" style="color: var(--warning); font-size: 11px; margin-top: 8px;">◈ 達成 80% 解開終點傳送門</p>
+    <p id="goal-info" style="color: var(--warning); font-size: 11px; margin-top: 8px;">◈ 需累積足夠分數開啟傳送門</p>
+</div>
+
+<!-- Mobile Controls -->
+<div id="mobile-controls">
+    <div class="control-row">
+        <div class="dpad-btn" id="btn-up">▲</div>
+    </div>
+    <div class="control-row">
+        <div class="dpad-btn" id="btn-left">◀</div>
+        <div class="dpad-btn" id="btn-down">▼</div>
+        <div class="dpad-btn" id="btn-right">▶</div>
+    </div>
+</div>
+
+<div id="monster-status">😈 怪物重生倒數: <span id="cooldown-timer">10</span>s</div>
+
+<div id="crosshair">
+    <div style="width: 4px; height: 4px; background: white; border-radius: 50%; box-shadow: 0 0 4px white;"></div>
+    <div id="wall-hp-bar"><div id="wall-hp-fill"></div></div>
+    <div id="wall-hp-text">WALL HP: 10/10</div>
 </div>
 
 <div id="user-id-display" style="position: absolute; bottom: 15px; left: 15px; font-size: 10px; opacity: 0.3;"></div>
@@ -97,9 +222,16 @@
 <div id="quiz-overlay">
     <div class="quiz-card" id="quiz-card">
         <div id="quiz-msg" style="color: var(--danger); margin-bottom: 15px; font-weight: bold; letter-spacing: 1px;">[ SYSTEM LOCKED ]</div>
-        <div id="monster-combo" style="display: none; color: var(--warning); margin-bottom: 15px; font-size: 18px;">連續正確次數: 0 / 3</div>
+        <div id="monster-combo" style="display: none; color: var(--warning); margin-bottom: 15px; font-size: 18px;">連續正確: 0 / 3</div>
         <div class="question" id="q-text">Loading...</div>
         <div class="options-grid" id="q-options"></div>
+        
+        <!-- Feedback Layer -->
+        <div id="feedback-overlay">
+            <div id="feedback-icon">⭕</div>
+            <div id="feedback-text">Correct!</div>
+            <div id="feedback-sub"></div>
+        </div>
     </div>
 </div>
 
@@ -108,9 +240,8 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, runTransaction, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// --- 1. Firebase 初始化 ---
 const firebaseConfig = {
   apiKey: "AIzaSyCOI2MloQp3rLf2T90vxep9b4zwKsUWEIs",
   authDomain: "workshop-test-98617.firebaseapp.com",
@@ -124,92 +255,139 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'vocab-v2-stable';
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'vocab-v3-coop';
 
-// --- 2. 遊戲設定 ---
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUrIh3_ELuEAFnI6VRdWWI8AnmkJKh_bplW5PTw3PgQHAyyhXgUZokKOLC0eRcBv9T-XEPti1OlEHI/pub?gid=0&single=true&output=csv";
 
-// 內建備用題庫 (防止 Google Sheet 讀取失敗)
 const DEFAULT_QUESTIONS = [
-    { q: "Choose the Past Participle of 'Eat'", a: "Eaten", b: ["Ate", "Eating", "Eats"] },
-    { q: "Choose the correct form: She has ___ home.", a: "gone", b: ["go", "went", "going"] },
-    { q: "Which one is an adjective?", a: "Beautiful", b: ["Beauty", "Beautifully", "Beautify"] },
+    { q: "Past Participle of 'Eat'", a: "Eaten", b: ["Ate", "Eating", "Eats"] },
+    { q: "She has ___ home.", a: "gone", b: ["go", "went", "going"] },
+    { q: "Adjective?", a: "Beautiful", b: ["Beauty", "Beautifully", "Beautify"] },
     { q: "Synonym of 'Happy'", a: "Joyful", b: ["Sad", "Angry", "Tired"] },
     { q: "Antonym of 'Big'", a: "Small", b: ["Huge", "Large", "Giant"] }
 ];
 
 let questionBank = [];
 let otherPlayers = {};
+
 let worldMap = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,1,0,0,0,0,3,1],
-    [1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
-    [1,0,0,0,0,2,0,0,0,0,0,0,1,0,1],
-    [1,1,1,0,1,1,1,1,1,1,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,2,0,0,0,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,0,2,0,0,0,2,0,0,2,0,3,1],
+    [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+    [1,2,0,0,0,2,0,0,0,2,0,0,0,2,1],
+    [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+    [1,2,0,0,2,0,0,2,0,0,2,0,0,2,1],
+    [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+    [1,2,0,0,0,2,0,2,0,2,0,0,0,2,1],
+    [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+    [1,2,0,0,2,0,0,0,0,0,2,0,0,2,1],
+    [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+    [1,2,0,0,0,2,0,2,0,2,0,0,0,2,1],
+    [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+    [1,0,0,0,2,0,0,0,0,0,2,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-const player = { x: 1.5, y: 7.5, dir: -Math.PI/2, v: 0, w: 0, fov: Math.PI / 3, totalSolved: 0 };
-const monster = { x: 13.5, y: 7.5, speed: 0.014 };
+const WALL_MAX_HP = 10;
+let wallHitsData = {};
+
+// Player data now tracks personal score
+const player = { x: 1.5, y: 13.5, dir: -Math.PI/2, v: 0, w: 0, fov: Math.PI / 3, totalSolved: 0, personalScore: 0, name: "Player" };
+const monster = { x: 13.5, y: 13.5, speed: 0.012, cooldownUntil: 0 };
 const keys = {};
 let userId = "", isMonsterQuiz = false, monsterCombo = 0, isGameOver = false;
 let isOfflineMode = false;
 
-// --- 3. 初始化邏輯 (強化容錯) ---
-const logDebug = (msg) => {
-    console.log(msg);
-    document.getElementById('debug-log').innerText = msg;
+window.submitName = () => {
+    const input = document.getElementById('player-name-input');
+    const name = input.value.trim();
+    if (name) {
+        player.name = name;
+        document.getElementById('login-overlay').style.display = 'none';
+        startGame();
+    } else {
+        alert("請輸入姓名！");
+    }
 };
 
+function parseCSVRow(row) {
+    let result = [];
+    let current = '';
+    let inQuote = false;
+    for (let i = 0; i < row.length; i++) {
+        let char = row[i];
+        if (char === '"') {
+            if (inQuote && row[i + 1] === '"') { 
+                current += '"'; i++;
+            } else { inQuote = !inQuote; }
+        } else if (char === ',' && !inQuote) {
+            result.push(current.trim()); current = '';
+        } else { current += char; }
+    }
+    result.push(current.trim());
+    return result;
+}
+
 const startGame = () => {
+    spawnPlayerRandomly();
     document.getElementById('loading').style.opacity = 0;
     setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+    setupMobileControls();
     gameLoop();
 };
 
+const spawnPlayerRandomly = () => {
+    let validSpots = [];
+    for(let y=1; y<worldMap.length-1; y++) {
+        for(let x=1; x<worldMap[0].length-1; x++) {
+            if(worldMap[y][x] === 0 && (x < 12 || y < 12)) {
+                validSpots.push({x: x + 0.5, y: y + 0.5});
+            }
+        }
+    }
+    if(validSpots.length > 0) {
+        const spot = validSpots[Math.floor(Math.random() * validSpots.length)];
+        player.x = spot.x; player.y = spot.y;
+    }
+};
+
+const setupMobileControls = () => {
+    const bind = (id, k) => {
+        const el = document.getElementById(id);
+        const on = (e) => { e.preventDefault(); keys[k] = true; };
+        const off = (e) => { e.preventDefault(); keys[k] = false; };
+        el.addEventListener('touchstart', on); el.addEventListener('touchend', off);
+        el.addEventListener('mousedown', on); el.addEventListener('mouseup', off);
+    };
+    bind('btn-up', 'arrowup'); bind('btn-down', 'arrowdown');
+    bind('btn-left', 'arrowleft'); bind('btn-right', 'arrowright');
+};
+
 const initSystem = async () => {
-    // A. 載入題庫
     try {
-        logDebug("正在讀取題庫...");
         const res = await fetch(SHEET_URL);
-        if (!res.ok) throw new Error("Network response was not ok");
         const csv = await res.text();
-        const lines = csv.split('\n').slice(1);
-        questionBank = lines.map(l => {
-            const c = l.split(',').map(s => s.replace(/"/g, '').trim());
-            return { q: c[0], a: c[1], b: [c[2], c[3], c[4]] };
-        }).filter(q => q.q);
-        logDebug("雲端題庫讀取成功");
+        questionBank = csv.split(/\r?\n/).slice(1).map(line => {
+            const cols = parseCSVRow(line);
+            if (cols.length < 5) return null;
+            return { q: cols[0], a: cols[1], b: [cols[2], cols[3], cols[4]] };
+        }).filter(q => q && q.q);
     } catch(e) { 
-        console.warn("Sheet Error, using default", e);
         questionBank = DEFAULT_QUESTIONS;
-        logDebug("使用備用題庫 (雲端讀取失敗)");
     }
 
-    // B. 登入 Firebase
-    try {
-        logDebug("正在連線多人伺服器...");
-        await signInAnonymously(auth);
-    } catch (err) {
-        console.error("Auth Failed", err);
-        logDebug("連線失敗: 啟動單機模式");
-        isOfflineMode = true;
-        document.getElementById('player-count').innerText = "● 離線模式 (單機遊玩)";
-        startGame(); // 直接開始，不等待 Auth
-        return;
+    try { await signInAnonymously(auth); } catch (e) { 
+        isOfflineMode = true; 
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('login-overlay').style.display = 'flex';
+        return; 
     }
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
             userId = user.uid;
-            document.getElementById('user-id-display').innerText = `ID: ${userId}`;
             
-            // 監聽其他玩家
-            const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'players');
-            onSnapshot(playersRef, (snap) => {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'players'), (snap) => {
                 snap.docChanges().forEach(c => {
                     if (c.type === "removed") delete otherPlayers[c.doc.id];
                     else if (c.doc.id !== userId) otherPlayers[c.doc.id] = c.doc.data();
@@ -217,65 +395,69 @@ const initSystem = async () => {
                 document.getElementById('player-count').innerText = `● 在線探險家: ${Object.keys(otherPlayers).length + 1}`;
             });
 
-            // 監聽世界狀態
-            const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState');
-            onSnapshot(worldRef, (snap) => {
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'worldState', 'global'), (snap) => {
                 if (snap.exists()) {
                     const data = snap.data();
                     player.totalSolved = data.totalSolved || 0;
-                    if (data.brokenWalls) data.brokenWalls.forEach(p => {
-                        const [wy, wx] = p.split(',').map(Number);
-                        if (worldMap[wy][wx] === 2) worldMap[wy][wx] = 0;
-                    });
+                    wallHitsData = data.wallHits || {}; 
+                    for(let key in wallHitsData) {
+                        const [wy, wx] = key.split(',').map(Number);
+                        if (wallHitsData[key] >= WALL_MAX_HP && worldMap[wy][wx] === 2) worldMap[wy][wx] = 0;
+                    }
                     updateStats();
                 }
             });
 
             setInterval(syncMyPosition, 100);
-            startGame();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('login-overlay').style.display = 'flex';
         }
     });
-
-    // C. 強制逾時機制 (5秒後無論如何都開始)
-    setTimeout(() => {
-        if (document.getElementById('loading').style.display !== 'none') {
-            logDebug("連線逾時，強制進入遊戲");
-            startGame();
-        }
-    }, 5000);
 };
 
-// --- 同步邏輯 ---
 async function syncMyPosition() {
     if (!userId || isGameOver || isOfflineMode) return;
-    try {
-        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', userId), { x: player.x, y: player.y, dir: player.dir, time: Date.now() }, { merge: true });
+    try { 
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', userId), { 
+            x: player.x, y: player.y, dir: player.dir, 
+            name: player.name, score: player.personalScore, // 同步個人分數
+            time: Date.now() 
+        }, { merge: true }); 
     } catch(e) {}
 }
 
-async function syncWallBroken(y, x) {
+async function hitWall(y, x) {
     if (isOfflineMode) {
+        const key = `${y},${x}`;
+        wallHitsData[key] = (wallHitsData[key] || 0) + 1;
         player.totalSolved++;
+        if (wallHitsData[key] >= WALL_MAX_HP) worldMap[y][x] = 0;
         updateStats();
         return;
     }
+
+    const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState', 'global');
+    const key = `${y},${x}`;
+    
     try {
-        const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState');
-        const snap = await getDoc(worldRef);
-        let currentWalls = snap.exists() ? snap.data().brokenWalls || [] : [];
-        let currentSolved = snap.exists() ? snap.data().totalSolved || 0 : 0;
-        const key = `${y},${x}`;
-        if (!currentWalls.includes(key)) {
-            currentWalls.push(key);
-            await setDoc(worldRef, { brokenWalls: currentWalls, totalSolved: currentSolved + 1 }, { merge: true });
-        }
-    } catch(e) { console.error("Sync Error", e); }
+        await runTransaction(db, async (transaction) => {
+            const sfDoc = await transaction.get(worldRef);
+            if (!sfDoc.exists()) {
+                transaction.set(worldRef, { wallHits: { [key]: 1 }, totalSolved: 1 });
+            } else {
+                const data = sfDoc.data();
+                const hits = data.wallHits || {};
+                hits[key] = (hits[key] || 0) + 1;
+                transaction.update(worldRef, { wallHits: hits, totalSolved: (data.totalSolved || 0) + 1 });
+            }
+        });
+    } catch (e) { console.error("Hit Wall Error", e); }
 }
 
 function updateStats() {
-    const req = Math.ceil(questionBank.length * 0.8) || 1;
+    const req = 50; 
     const progress = Math.min(100, (player.totalSolved / req) * 100);
-    document.getElementById('stats').innerText = `團隊進度: ${Math.floor(progress)}% (${player.totalSolved}/${req})`;
+    document.getElementById('stats').innerText = `團隊破牆總數: ${player.totalSolved}`;
     document.getElementById('progress-fill').style.width = `${progress}%`;
     if (progress >= 100) {
         document.getElementById('goal-info').innerText = "◈ 傳送門能量已充滿！";
@@ -283,46 +465,143 @@ function updateStats() {
     }
 }
 
-// --- 4. 遊戲核心邏輯 ---
+// --- 遊戲邏輯 ---
 function showMessage(text, color = "var(--primary)") {
     const box = document.getElementById('message-box');
     box.innerText = text; box.style.borderColor = color; box.style.display = 'block';
     setTimeout(() => box.style.display = 'none', 3000);
 }
 
+// 粒子特效
+let confettiParticles = [];
+function createConfetti() {
+    for (let i = 0; i < 150; i++) {
+        confettiParticles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            color: `hsl(${Math.random()*360}, 100%, 50%)`,
+            size: Math.random() * 8 + 4,
+            speed: Math.random() * 5 + 2,
+            drift: Math.random() * 2 - 1
+        });
+    }
+}
+function drawConfetti() {
+    confettiParticles.forEach((p, i) => {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+        p.y += p.speed;
+        p.x += p.drift;
+        if (p.y > canvas.height) confettiParticles.splice(i, 1);
+    });
+    if (confettiParticles.length < 100 && isGameOver) createConfetti();
+}
+
 function gameLoop() {
-    if (isGameOver) return;
+    if (isGameOver) {
+        // 在背景繼續畫 confetti
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        drawConfetti();
+        requestAnimationFrame(gameLoop);
+        return;
+    }
     updateEntities();
     render();
     requestAnimationFrame(gameLoop);
 }
 
+let facingWall = null; 
+
 function updateEntities() {
     if (document.getElementById('quiz-overlay').style.display === 'flex') return;
     
-    // Player Move
-    if (keys['w']) player.v = 0.06; else if (keys['s']) player.v = -0.06; else player.v *= 0.8;
-    if (keys['a']) player.w = -0.05; else if (keys['d']) player.w = 0.05; else player.w *= 0.8;
+    const up = keys['w'] || keys['arrowup'];
+    const down = keys['s'] || keys['arrowdown'];
+    const left = keys['a'] || keys['arrowleft'];
+    const right = keys['d'] || keys['arrowright'];
+
+    if (up) player.v = 0.06; else if (down) player.v = -0.06; else player.v *= 0.8;
+    if (left) player.w = -0.05; else if (right) player.w = 0.05; else player.w *= 0.8;
     player.dir += player.w;
     
     const nx = player.x + Math.cos(player.dir) * player.v, ny = player.y + Math.sin(player.dir) * player.v;
     const cell = worldMap[Math.floor(ny)] ? worldMap[Math.floor(ny)][Math.floor(nx)] : 1;
     
+    const rayDist = 1.5;
+    const fx = player.x + Math.cos(player.dir) * rayDist;
+    const fy = player.y + Math.sin(player.dir) * rayDist;
+    const fCell = worldMap[Math.floor(fy)] ? worldMap[Math.floor(fy)][Math.floor(fx)] : 0;
+    
+    const hpBar = document.getElementById('wall-hp-bar');
+    const hpText = document.getElementById('wall-hp-text');
+    
+    if (fCell === 2) {
+        facingWall = { x: Math.floor(fx), y: Math.floor(fy) };
+        const key = `${facingWall.y},${facingWall.x}`;
+        const hits = wallHitsData[key] || 0;
+        const hp = Math.max(0, WALL_MAX_HP - hits);
+        hpBar.style.display = 'block';
+        hpText.style.display = 'block';
+        document.getElementById('wall-hp-fill').style.width = `${(hp/WALL_MAX_HP)*100}%`;
+        hpText.innerText = `WALL HP: ${hp}/${WALL_MAX_HP}`;
+    } else {
+        facingWall = null;
+        hpBar.style.display = 'none';
+        hpText.style.display = 'none';
+    }
+
     if (cell === 0) { player.x = nx; player.y = ny; }
     else if (cell === 2) triggerQuiz(Math.floor(nx), Math.floor(ny));
     else if (cell === 3) {
-        if (player.totalSolved >= Math.ceil(questionBank.length * 0.8)) { isGameOver = true; document.getElementById('win-screen').style.display = 'flex'; }
-        else { showMessage("能量不足！", "var(--warning)"); player.v = -0.15; }
+        if (player.totalSolved >= 50) { winGame(); }
+        else { showMessage("分數不足！團隊需更多合作。", "var(--warning)"); player.v = -0.2; }
     }
 
-    // Monster Move
-    const dx = player.x - monster.x, dy = player.y - monster.y;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < 0.5) { isMonsterQuiz = true; monsterCombo = 0; triggerQuiz(); }
-    monster.x += (dx/dist) * monster.speed; monster.y += (dy/dist) * monster.speed;
+    if (monster.cooldownUntil > Date.now()) {
+        document.getElementById('monster-status').style.display = 'block';
+        document.getElementById('cooldown-timer').innerText = Math.ceil((monster.cooldownUntil - Date.now())/1000);
+        monster.x = 1000; 
+    } else {
+        document.getElementById('monster-status').style.display = 'none';
+        if (monster.x === 1000) { monster.x = 13.5; monster.y = 13.5; }
+        const dx = player.x - monster.x, dy = player.y - monster.y;
+        if (Math.sqrt(dx*dx + dy*dy) < 0.6) { isMonsterQuiz = true; monsterCombo = 0; triggerQuiz(); }
+        monster.x += (dx/Math.sqrt(dx*dx + dy*dy)) * monster.speed; 
+        monster.y += (dy/Math.sqrt(dx*dx + dy*dy)) * monster.speed;
+    }
 }
 
-// --- 5. 繪圖渲染 ---
+// 獲勝邏輯
+async function winGame() {
+    isGameOver = true;
+    document.getElementById('win-screen').style.display = 'flex';
+    document.getElementById('my-final-score').innerText = player.personalScore;
+    document.getElementById('team-final-score').innerText = player.totalSolved;
+    createConfetti();
+
+    // 獲取 MVP
+    let allPlayers = [{ name: player.name, score: player.personalScore }];
+    for (let id in otherPlayers) {
+        if(otherPlayers[id].score !== undefined) {
+            allPlayers.push({ name: otherPlayers[id].name, score: otherPlayers[id].score });
+        }
+    }
+    allPlayers.sort((a,b) => b.score - a.score);
+    
+    const mvpContainer = document.getElementById('mvp-container');
+    mvpContainer.innerHTML = '';
+    allPlayers.slice(0, 3).forEach((p, i) => {
+        mvpContainer.innerHTML += `
+            <div class="mvp-item">
+                <div class="rank-badge">${i+1}</div>
+                <span>${p.name}</span>
+                <span style="margin-left:auto; color: white;">${p.score} pt</span>
+            </div>
+        `;
+    });
+}
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -330,21 +609,17 @@ function render() {
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     const w = canvas.width, h = canvas.height;
     
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, h/2);
-    skyGrad.addColorStop(0, '#020205'); skyGrad.addColorStop(1, '#0c0c1a');
-    ctx.fillStyle = skyGrad; ctx.fillRect(0,0,w,h/2);
-    
-    const floorGrad = ctx.createLinearGradient(0, h/2, 0, h);
-    floorGrad.addColorStop(0, '#111'); floorGrad.addColorStop(1, '#000');
-    ctx.fillStyle = floorGrad; ctx.fillRect(0,h/2,w,h/2);
+    const sky = ctx.createLinearGradient(0,0,0,h/2); sky.addColorStop(0,'#050510'); sky.addColorStop(1,'#222');
+    ctx.fillStyle = sky; ctx.fillRect(0,0,w,h/2);
+    const floor = ctx.createLinearGradient(0,h/2,0,h); floor.addColorStop(0,'#1a1a1a'); floor.addColorStop(1,'#000');
+    ctx.fillStyle = floor; ctx.fillRect(0,h/2,w,h/2);
 
     const zBuffer = new Array(w).fill(Infinity);
     
     for (let i = 0; i < w; i++) {
         const rayAngle = (player.dir - player.fov/2) + (i/w)*player.fov;
-        let d = 0, hit = 0, x = player.x, y = player.y;
+        let d = 0, hit = 0, x = player.x, y = player.y, side = 0;
         const sx = Math.cos(rayAngle)*0.01, sy = Math.sin(rayAngle)*0.01;
-        let side = 0;
 
         while (hit === 0 && d < 14) {
             x += sx; d += 0.01; side = 0;
@@ -357,24 +632,24 @@ function render() {
         zBuffer[i] = realD;
         const wh = h / realD;
         
-        let baseHue = hit === 2 ? 0 : 230;
-        let brightness = side === 1 ? 40 : 25;
-        brightness -= realD * 2.5;
+        let color = '#444';
+        if (hit === 2) { 
+            const key = `${Math.floor(y)},${Math.floor(x)}`;
+            const hits = wallHitsData[key] || 0;
+            const hpRatio = Math.max(0, (WALL_MAX_HP - hits) / WALL_MAX_HP);
+            color = `hsl(${hpRatio * 120}, 60%, ${20 + hpRatio * 30}%)`; 
+        } else if (hit === 3) color = '#2ed573';
         
-        if (hit === 3) ctx.fillStyle = `hsl(145, 80%, ${Math.max(10, 45 - realD*2.5)}%)`;
-        else ctx.fillStyle = `hsl(${baseHue}, ${hit === 2 ? '70%' : '40%'}, ${Math.max(5, brightness)}%)`;
-        ctx.fillRect(i, (h-wh)/2, 1, wh);
+        if (side === 1) ctx.globalAlpha = 0.7;
+        ctx.fillStyle = color; ctx.fillRect(i, (h-wh)/2, 1, wh);
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = `rgba(0,0,0,${Math.min(1, realD/12)})`; ctx.fillRect(i, (h-wh)/2, 1, wh);
     }
 
-    const sprites = [
-        { x: monster.x, y: monster.y, type: 'monster' },
-        { x: 13.5, y: 1.5, type: 'goal' }
-    ];
-    Object.keys(otherPlayers).forEach(id => sprites.push({ ...otherPlayers[id], type: 'player' }));
+    const sprites = [{ x: monster.x, y: monster.y, type: 'monster' }, { x: 13.5, y: 1.5, type: 'goal' }];
+    Object.values(otherPlayers).forEach(p => sprites.push({ ...p, type: 'player' }));
     sprites.sort((a,b) => {
-        const da = Math.pow(player.x-a.x,2)+Math.pow(player.y-a.y,2);
-        const db = Math.pow(player.x-b.x,2)+Math.pow(player.y-b.y,2);
-        return db - da;
+        return (Math.pow(player.x-b.x,2)+Math.pow(player.y-b.y,2)) - (Math.pow(player.x-a.x,2)+Math.pow(player.y-a.y,2));
     });
 
     sprites.forEach(s => {
@@ -388,87 +663,137 @@ function render() {
             const sx = (0.5 * (ang / (player.fov / 2)) + 0.5) * w;
             const sh = h / dist;
             if (dist < zBuffer[Math.floor(sx)]) {
-                if (s.type === 'goal') {
-                    const b = Math.sin(Date.now()/300)*15;
-                    const g = ctx.createRadialGradient(sx, h/2+b, 0, sx, h/2+b, sh/3);
-                    g.addColorStop(0, '#fff'); g.addColorStop(0.3, 'rgba(46, 213, 115, 0.8)'); g.addColorStop(1, 'transparent');
-                    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, h/2+b, sh/3, 0, Math.PI*2); ctx.fill();
-                } else if (s.type === 'monster') {
-                    const pulse = 0.8 + Math.sin(Date.now()/100)*0.2;
-                    const g = ctx.createRadialGradient(sx, h/2, 0, sx, h/2, sh/2);
-                    g.addColorStop(0, `rgba(255, 0, 0, ${pulse})`); g.addColorStop(1, 'transparent');
-                    ctx.fillStyle = g; ctx.fillRect(sx - sh/4, (h-sh)/2, sh/2, sh);
+                if (s.type === 'monster') {
+                    ctx.fillStyle = `rgba(255, 0, 0, ${0.7 + Math.sin(Date.now()/200)*0.3})`;
+                    ctx.fillRect(sx-sh/4, (h-sh)/2, sh/2, sh);
+                } else if (s.type === 'player') {
+                    ctx.fillStyle = 'cyan'; ctx.fillRect(sx-sh/6, h/2, sh/3, sh/2);
+                    if (s.name) {
+                        ctx.fillStyle = 'white'; ctx.font = '12px Arial'; ctx.textAlign = 'center';
+                        ctx.fillText(s.name, sx, h/2 - sh/2 - 5);
+                    }
                 } else {
-                    ctx.fillStyle = 'rgba(88, 101, 242, 0.7)';
-                    ctx.fillRect(sx - sh/6, h/2 - sh/3, sh/3, sh/2);
+                    ctx.fillStyle = '#2ed573'; ctx.beginPath(); ctx.arc(sx, h/2, sh/4, 0, Math.PI*2); ctx.fill();
                 }
             }
         }
     });
-
-    drawMinimap(w, h);
+    
+    drawMinimap(w);
 }
 
-function drawMinimap(w, h) {
-    const s = 12, p = 25;
-    const mw = worldMap[0].length * s, mh = worldMap.length * s;
+function drawMinimap(w) {
+    const s = 8, p = 10, mw = 15*s, mh = 15*s;
     const ox = w - mw - p, oy = p;
-    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.beginPath(); ctx.roundRect(ox-5, oy-5, mw+10, mh+10, 10); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(ox, oy, mw, mh);
     
-    for (let y = 0; y < worldMap.length; y++) {
-        for (let x = 0; x < worldMap[0].length; x++) {
-            if (worldMap[y][x] === 1) { ctx.fillStyle = '#444'; ctx.fillRect(ox+x*s, oy+y*s, s-1, s-1); }
-            if (worldMap[y][x] === 2) { ctx.fillStyle = 'var(--danger)'; ctx.fillRect(ox+x*s, oy+y*s, s-1, s-1); }
+    for(let y=0; y<15; y++) {
+        for(let x=0; x<15; x++) {
+            if (worldMap[y][x] === 1) { ctx.fillStyle = '#555'; ctx.fillRect(ox+x*s, oy+y*s, s, s); }
+            if (worldMap[y][x] === 2) { 
+                const hits = wallHitsData[`${y},${x}`] || 0;
+                ctx.fillStyle = hits >= 5 ? '#e74c3c' : '#f1c40f'; 
+                ctx.fillRect(ox+x*s, oy+y*s, s, s); 
+            }
         }
     }
-    ctx.fillStyle = '#2ed573'; ctx.beginPath(); ctx.arc(ox+13.5*s, oy+1.5*s, 4, 0, 7); ctx.fill();
-    ctx.fillStyle = '#f1c40f'; ctx.save(); ctx.translate(ox+player.x*s, oy+player.y*s); ctx.rotate(player.dir);
-    ctx.beginPath(); ctx.moveTo(5,0); ctx.lineTo(-4,-4); ctx.lineTo(-4,4); ctx.fill(); ctx.restore();
-    Object.values(otherPlayers).forEach(p => { ctx.fillStyle = '#5865f2'; ctx.beginPath(); ctx.arc(ox+p.x*s, oy+p.y*s, 2.5, 0, 7); ctx.fill(); });
-    ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(ox+monster.x*s, oy+monster.y*s, 3, 0, 7); ctx.fill();
+    ctx.fillStyle = 'yellow'; ctx.fillRect(ox+player.x*s-2, oy+player.y*s-2, 4, 4);
+    if (monster.x < 100) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(ox+monster.x*s, oy+monster.y*s, 3, 0, 7); ctx.fill(); }
 }
 
-// --- 6. 測驗機制 ---
-function triggerQuiz(x, y) {
+function triggerQuiz(wx, wy) {
     const overlay = document.getElementById('quiz-overlay');
     if (overlay.style.display === 'flex') return;
-    const quiz = questionBank[Math.floor(Math.random() * questionBank.length)] || DEFAULT_QUESTIONS[0];
-    
-    document.getElementById('q-text').innerText = quiz.q;
-    const opts = [quiz.a, ...quiz.b].sort(() => Math.random() - 0.5);
-    const container = document.getElementById('q-options');
-    container.innerHTML = '';
-    
+
+    let currentQuiz = null;
+    const loadNextQuestion = () => {
+        currentQuiz = questionBank[Math.floor(Math.random() * questionBank.length)] || DEFAULT_QUESTIONS[0];
+        document.getElementById('q-text').innerText = currentQuiz.q;
+        const opts = [currentQuiz.a, ...currentQuiz.b].sort(() => Math.random() - 0.5);
+        const container = document.getElementById('q-options');
+        container.innerHTML = '';
+        
+        opts.forEach(o => {
+            const btn = document.createElement('button');
+            btn.innerText = o;
+            btn.onclick = () => handleAnswer(o, currentQuiz.a, wx, wy, loadNextQuestion);
+            container.appendChild(btn);
+        });
+    };
+
     const card = document.getElementById('quiz-card');
     const msg = document.getElementById('quiz-msg');
     const combo = document.getElementById('monster-combo');
 
-    if (isMonsterQuiz) { card.classList.add('monster-mode'); msg.innerText = "💀 [ GHOST ENTRAPMENT ]"; combo.style.display = 'block'; combo.innerText = `逃脫進度: ${monsterCombo} / 3`; }
-    else { card.classList.remove('monster-mode'); msg.innerText = "[ SECURITY LOCK ]"; combo.style.display = 'none'; }
+    if (isMonsterQuiz) {
+        card.classList.add('monster-mode');
+        msg.innerText = "💀 GHOST TRAP ACTIVE";
+        combo.style.display = 'block';
+        combo.innerText = `連續正確: ${monsterCombo} / 3`;
+    } else {
+        card.classList.remove('monster-mode');
+        const hits = wallHitsData[`${wy},${wx}`] || 0;
+        msg.innerText = `[ TARGET HP: ${Math.max(0, WALL_MAX_HP - hits)} ]`;
+        combo.style.display = 'none';
+    }
 
-    opts.forEach(o => {
-        const btn = document.createElement('button');
-        btn.innerText = o;
-        btn.onclick = () => {
-            if (o === quiz.a) {
-                if (isMonsterQuiz) {
-                    monsterCombo++;
-                    if (monsterCombo >= 3) { isMonsterQuiz = false; overlay.style.display = 'none'; monster.x = 13.5; monster.y = 7.5; showMessage("逃生成功！", "var(--success)"); }
-                    else triggerQuiz();
-                } else { syncWallBroken(y, x); overlay.style.display = 'none'; showMessage("核心解鎖！團隊能量上升", "var(--success)"); }
-            } else {
-                monsterCombo = 0;
-                if (isMonsterQuiz) triggerQuiz();
-                else { document.getElementById('quiz-msg').innerText = "❌ ERROR: WRONG SEQUENCE"; setTimeout(() => document.getElementById('quiz-msg').innerText = "[ SECURITY LOCK ]", 1000); }
-            }
-        };
-        container.appendChild(btn);
-    });
+    loadNextQuestion();
     overlay.style.display = 'flex';
 }
 
-window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+function handleAnswer(selected, correct, wx, wy, nextFn) {
+    const feedback = document.getElementById('feedback-overlay');
+    const icon = document.getElementById('feedback-icon');
+    const text = document.getElementById('feedback-text');
+    const sub = document.getElementById('feedback-sub');
+    
+    const btns = document.querySelectorAll('#q-options button');
+    btns.forEach(b => b.disabled = true);
+
+    const isCorrect = selected === correct;
+    
+    feedback.style.display = 'flex';
+    if (isCorrect) {
+        icon.innerText = "⭕"; text.innerText = "Correct!"; text.style.color = "var(--success)"; sub.innerText = "";
+        player.personalScore++; // 增加個人分數
+    } else {
+        icon.innerText = "❌"; text.innerText = "Wrong!"; text.style.color = "var(--danger)"; sub.innerText = `Answer: ${correct}`;
+    }
+
+    setTimeout(() => {
+        feedback.style.display = 'none';
+        btns.forEach(b => b.disabled = false);
+
+        if (isMonsterQuiz) {
+            if (isCorrect) {
+                monsterCombo++;
+                document.getElementById('monster-combo').innerText = `連續正確: ${monsterCombo} / 3`;
+                if (monsterCombo >= 3) {
+                    isMonsterQuiz = false;
+                    document.getElementById('quiz-overlay').style.display = 'none';
+                    monster.cooldownUntil = Date.now() + 10000;
+                    showMessage("怪物被擊退！爭取到 10 秒時間", "var(--success)");
+                } else { nextFn(); }
+            } else {
+                monsterCombo = 0; 
+                document.getElementById('monster-combo').innerText = `連續正確: 0 / 3`;
+                nextFn(); 
+            }
+        } else {
+            if (isCorrect) {
+                hitWall(wy, wx);
+                document.getElementById('quiz-overlay').style.display = 'none';
+                showMessage("攻擊成功！牆壁受損", "var(--warning)");
+            } else {
+                document.getElementById('quiz-overlay').style.display = 'none';
+                showMessage("攻擊無效...", "#aaa");
+            }
+        }
+    }, 1500); 
+}
+
+window.addEventListener('keydown', e => { if(e.key) keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup', e => { if(e.key) keys[e.key.toLowerCase()] = false; });
 initSystem();
 </script>
 </body>
