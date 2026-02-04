@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vocab Quest 3D - 視覺強化版</title>
+    <style>
+        :root {
+            --primary: #5865f2;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --bg: #020205;
+            --panel-bg: rgba(10, 10, 20, 0.85);
+        }
+        body { margin: 0; background: var(--bg); color: #e0e0e0; font-family: 'Inter', 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; }
+        canvas { display: block; filter: contrast(1.1) brightness(1.1); }
+
+        /* HUD - 現代化毛玻璃風格 */
+        #hud {
+            position: absolute; top: 20px; left: 20px; z-index: 10;
+            background: var(--panel-bg); padding: 20px; border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            pointer-events: none; width: 260px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        #hud h1 { margin: 0; font-size: 20px; letter-spacing: 1px; color: #fff; text-shadow: 0 0 10px var(--primary); }
+        #hud p { margin: 8px 0 0; font-size: 13px; opacity: 0.9; }
+        .progress-container { margin-top: 15px; }
+        .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--success); }
+
+        /* Quiz Overlay */
+        #quiz-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.92);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+            backdrop-filter: blur(15px);
+        }
+        .quiz-card {
+            background: #11111d; width: 90%; max-width: 550px; padding: 45px;
+            border-radius: 30px; border: 1px solid var(--primary); text-align: center;
+            box-shadow: 0 0 60px rgba(88, 101, 242, 0.3);
+        }
+        .monster-mode { border-color: var(--danger) !important; box-shadow: 0 0 60px rgba(255, 71, 87, 0.4) !important; }
+        .question { font-size: 28px; font-weight: 700; margin-bottom: 35px; color: #fff; line-height: 1.4; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        button {
+            padding: 20px; font-size: 18px; border: none; border-radius: 15px;
+            background: rgba(255, 255, 255, 0.04); color: #fff; cursor: pointer;
+            transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;
+        }
+        button:hover { background: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        
+        #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid rgba(88,101,242,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite cubic-bezier(0.5, 0.1, 0.4, 0.9); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        #message-box {
+            position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+            padding: 15px 35px; border-radius: 100px; background: var(--panel-bg);
+            border: 1px solid var(--primary); font-weight: bold; display: none; z-index: 100;
+            backdrop-filter: blur(8px); animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    </style>
+</head>
+<body>
+
+<div id="loading">
+    <div class="spinner"></div>
+    <p style="margin-top: 20px; letter-spacing: 2px; font-size: 14px; opacity: 0.7;">正在載入 3D 地牢資料...</p>
+</div>
+
+<div id="win-screen">
+    <h1 style="color: var(--success); font-size: 64px; text-shadow: 0 0 30px var(--success);">MISSION ACCOMPLISHED</h1>
+    <p style="font-size: 24px; opacity: 0.8; margin-top: 10px;">團隊成功逃離地牢！單字力大幅提升。</p>
+    <button onclick="location.reload()" style="margin-top: 40px; background: var(--success); padding: 15px 50px;">重新開始探索</button>
+</div>
+
+<div id="message-box"></div>
+
+<div id="hud">
+    <h1>VOCAB QUEST</h1>
+    <p id="player-count">● 在線探險家: 1</p>
+    <div class="progress-container">
+        <p id="stats" style="margin-bottom: 5px;">團隊進度: 0%</p>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+    </div>
+    <p id="goal-info" style="color: var(--warning); font-size: 11px; margin-top: 8px;">◈ 達成 80% 解開終點傳送門</p>
+</div>
+
+<div id="user-id-display" style="position: absolute; bottom: 15px; left: 15px; font-size: 10px; opacity: 0.3;"></div>
+
+<div id="quiz-overlay">
+    <div class="quiz-card" id="quiz-card">
+        <div id="quiz-msg" style="color: var(--danger); margin-bottom: 15px; font-weight: bold; letter-spacing: 1px;">[ SYSTEM LOCKED ]</div>
+        <div id="monster-combo" style="display: none; color: var(--warning); margin-bottom: 15px; font-size: 18px;">連續正確次數: 0 / 3</div>
+        <div class="question" id="q-text">Loading...</div>
+        <div class="options-grid" id="q-options"></div>
+    </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// --- 1. Firebase 初始化 ---
+const firebaseConfig = {
+  apiKey: "AIzaSyCOI2MloQp3rLf2T90vxep9b4zwKsUWEIs",
+  authDomain: "workshop-test-98617.firebaseapp.com",
+  databaseURL: "https://workshop-test-98617-default-rtdb.firebaseio.com",
+  projectId: "workshop-test-98617",
+  storageBucket: "workshop-test-98617.firebasestorage.app",
+  messagingSenderId: "636905955796",
+  appId: "1:636905955796:web:a01740ce01d98447d4b641"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'vocab-v2-deluxe';
+
+// --- 2. 遊戲設定 ---
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUrIh3_ELuEAFnI6VRdWWI8AnmkJKh_bplW5PTw3PgQHAyyhXgUZokKOLC0eRcBv9T-XEPti1OlEHI/pub?gid=0&single=true&output=csv";
+
+let questionBank = [];
+let otherPlayers = {};
+let worldMap = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,1,0,0,0,0,3,1],
+    [1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
+    [1,0,0,0,0,2,0,0,0,0,0,0,1,0,1],
+    [1,1,1,0,1,1,1,1,1,1,1,0,1,0,1],
+    [1,0,0,0,0,0,0,0,0,2,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+
+const player = { x: 1.5, y: 7.5, dir: -Math.PI/2, v: 0, w: 0, fov: Math.PI / 3, totalSolved: 0 };
+const monster = { x: 13.5, y: 7.5, speed: 0.014 };
+const keys = {};
+let userId = "", isMonsterQuiz = false, monsterCombo = 0, isGameOver = false;
+
+// --- 3. 多人連線 ---
+const initMultiplayer = async () => {
+    try { await signInAnonymously(auth); } catch (e) { console.error(e); }
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            userId = user.uid;
+            document.getElementById('user-id-display').innerText = `ID: ${userId}`;
+            const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'players');
+            onSnapshot(playersRef, (snap) => {
+                snap.docChanges().forEach(c => {
+                    if (c.type === "removed") delete otherPlayers[c.doc.id];
+                    else if (c.doc.id !== userId) otherPlayers[c.doc.id] = c.doc.data();
+                });
+                document.getElementById('player-count').innerText = `● 在線探險家: ${Object.keys(otherPlayers).length + 1}`;
+            });
+            const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState');
+            onSnapshot(worldRef, (snap) => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    player.totalSolved = data.totalSolved || 0;
+                    if (data.brokenWalls) data.brokenWalls.forEach(p => {
+                        const [wy, wx] = p.split(',').map(Number);
+                        if (worldMap[wy][wx] === 2) worldMap[wy][wx] = 0;
+                    });
+                    updateStats();
+                }
+            });
+            setInterval(syncMyPosition, 100);
+            loadQuestions();
+        }
+    });
+};
+
+async function syncMyPosition() {
+    if (!userId || isGameOver) return;
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', userId), { x: player.x, y: player.y, dir: player.dir, time: Date.now() }, { merge: true });
+}
+
+async function syncWallBroken(y, x) {
+    const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState');
+    const snap = await getDoc(worldRef);
+    let currentWalls = snap.exists() ? snap.data().brokenWalls || [] : [];
+    let currentSolved = snap.exists() ? snap.data().totalSolved || 0 : 0;
+    const key = `${y},${x}`;
+    if (!currentWalls.includes(key)) {
+        currentWalls.push(key);
+        await setDoc(worldRef, { brokenWalls: currentWalls, totalSolved: currentSolved + 1 }, { merge: true });
+    }
+}
+
+// --- 4. 遊戲核心邏輯 ---
+async function loadQuestions() {
+    try {
+        const res = await fetch(SHEET_URL);
+        const csv = await res.text();
+        const lines = csv.split('\n').slice(1);
+        questionBank = lines.map(l => {
+            const c = l.split(',').map(s => s.replace(/"/g, '').trim());
+            return { q: c[0], a: c[1], b: [c[2], c[3], c[4]] };
+        }).filter(q => q.q);
+    } catch(e) {}
+    document.getElementById('loading').style.display = 'none';
+    gameLoop();
+}
+
+function updateStats() {
+    const req = Math.ceil(questionBank.length * 0.8) || 1;
+    const progress = Math.min(100, (player.totalSolved / req) * 100);
+    document.getElementById('stats').innerText = `團隊進度: ${Math.floor(progress)}% (${player.totalSolved}/${req})`;
+    document.getElementById('progress-fill').style.width = `${progress}%`;
+    if (progress >= 100) {
+        document.getElementById('goal-info').innerText = "◈ 傳送門能量已充滿！";
+        document.getElementById('goal-info').style.color = "var(--success)";
+    }
+}
+
+function showMessage(text, color = "var(--primary)") {
+    const box = document.getElementById('message-box');
+    box.innerText = text; box.style.borderColor = color; box.style.display = 'block';
+    setTimeout(() => box.style.display = 'none', 3000);
+}
+
+function gameLoop() {
+    if (isGameOver) return;
+    updateEntities();
+    render();
+    requestAnimationFrame(gameLoop);
+}
+
+function updateEntities() {
+    if (document.getElementById('quiz-overlay').style.display === 'flex') return;
+    
+    // Player Move
+    if (keys['w']) player.v = 0.06; else if (keys['s']) player.v = -0.06; else player.v *= 0.8;
+    if (keys['a']) player.w = -0.05; else if (keys['d']) player.w = 0.05; else player.w *= 0.8;
+    player.dir += player.w;
+    
+    const nx = player.x + Math.cos(player.dir) * player.v, ny = player.y + Math.sin(player.dir) * player.v;
+    const cell = worldMap[Math.floor(ny)] ? worldMap[Math.floor(ny)][Math.floor(nx)] : 1;
+    
+    if (cell === 0) { player.x = nx; player.y = ny; }
+    else if (cell === 2) triggerQuiz(Math.floor(nx), Math.floor(ny));
+    else if (cell === 3) {
+        if (player.totalSolved >= Math.ceil(questionBank.length * 0.8)) { isGameOver = true; document.getElementById('win-screen').style.display = 'flex'; }
+        else { showMessage("能量不足！", "var(--warning)"); player.v = -0.15; }
+    }
+
+    // Monster Move
+    const dx = player.x - monster.x, dy = player.y - monster.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 0.5) { isMonsterQuiz = true; monsterCombo = 0; triggerQuiz(); }
+    monster.x += (dx/dist) * monster.speed; monster.y += (dy/dist) * monster.speed;
+}
+
+// --- 5. 繪圖渲染 (視覺升級核心) ---
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function render() {
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const w = canvas.width, h = canvas.height;
+    
+    // 背景：動態漸層
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, h/2);
+    skyGrad.addColorStop(0, '#020205'); skyGrad.addColorStop(1, '#0c0c1a');
+    ctx.fillStyle = skyGrad; ctx.fillRect(0,0,w,h/2);
+    
+    const floorGrad = ctx.createLinearGradient(0, h/2, 0, h);
+    floorGrad.addColorStop(0, '#111'); floorGrad.addColorStop(1, '#000');
+    ctx.fillStyle = floorGrad; ctx.fillRect(0,h/2,w,h/2);
+
+    const zBuffer = new Array(w).fill(Infinity);
+    
+    // 3D 牆壁 (光影修正版)
+    for (let i = 0; i < w; i++) {
+        const rayAngle = (player.dir - player.fov/2) + (i/w)*player.fov;
+        let d = 0, hit = 0, x = player.x, y = player.y;
+        const sx = Math.cos(rayAngle)*0.01, sy = Math.sin(rayAngle)*0.01;
+        let side = 0; // 0 for vertical, 1 for horizontal
+
+        while (hit === 0 && d < 14) {
+            x += sx; d += 0.01; side = 0;
+            if (worldMap[Math.floor(y)][Math.floor(x)] > 0) { hit = worldMap[Math.floor(y)][Math.floor(x)]; break; }
+            y += sy; side = 1;
+            if (worldMap[Math.floor(y)][Math.floor(x)] > 0) { hit = worldMap[Math.floor(y)][Math.floor(x)]; break; }
+        }
+        
+        const realD = d * Math.cos(rayAngle - player.dir);
+        zBuffer[i] = realD;
+        const wh = h / realD;
+        
+        // 視覺魔法：根據 side 調整亮度產生成立體轉角
+        let baseHue = hit === 2 ? 0 : 230;
+        let brightness = side === 1 ? 40 : 25; // 側面較暗
+        brightness -= realD * 2.5; // 霧氣距離衰減
+        
+        if (hit === 3) ctx.fillStyle = `hsl(145, 80%, ${Math.max(10, 45 - realD*2.5)}%)`;
+        else ctx.fillStyle = `hsl(${baseHue}, ${hit === 2 ? '70%' : '40%'}, ${Math.max(5, brightness)}%)`;
+        
+        ctx.fillRect(i, (h-wh)/2, 1, wh);
+    }
+
+    // Sprite 渲染 (幽靈怪物, 其他玩家)
+    const sprites = [
+        { x: monster.x, y: monster.y, type: 'monster' },
+        { x: 13.5, y: 1.5, type: 'goal' }
+    ];
+    Object.keys(otherPlayers).forEach(id => sprites.push({ ...otherPlayers[id], type: 'player' }));
+    sprites.sort((a,b) => {
+        const da = Math.pow(player.x-a.x,2)+Math.pow(player.y-a.y,2);
+        const db = Math.pow(player.x-b.x,2)+Math.pow(player.y-b.y,2);
+        return db - da;
+    });
+
+    sprites.forEach(s => {
+        const dx = s.x - player.x, dy = s.y - player.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        let ang = Math.atan2(dy, dx) - player.dir;
+        while (ang < -Math.PI) ang += Math.PI * 2;
+        while (ang > Math.PI) ang -= Math.PI * 2;
+        
+        if (Math.abs(ang) < player.fov) {
+            const sx = (0.5 * (ang / (player.fov / 2)) + 0.5) * w;
+            const sh = h / dist;
+            if (dist < zBuffer[Math.floor(sx)]) {
+                if (s.type === 'goal') {
+                    const b = Math.sin(Date.now()/300)*15;
+                    const g = ctx.createRadialGradient(sx, h/2+b, 0, sx, h/2+b, sh/3);
+                    g.addColorStop(0, '#fff'); g.addColorStop(0.3, 'rgba(46, 213, 115, 0.8)'); g.addColorStop(1, 'transparent');
+                    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, h/2+b, sh/3, 0, Math.PI*2); ctx.fill();
+                } else if (s.type === 'monster') {
+                    // 脈動幽靈效果
+                    const pulse = 0.8 + Math.sin(Date.now()/100)*0.2;
+                    const g = ctx.createRadialGradient(sx, h/2, 0, sx, h/2, sh/2);
+                    g.addColorStop(0, `rgba(255, 0, 0, ${pulse})`); g.addColorStop(1, 'transparent');
+                    ctx.fillStyle = g; ctx.fillRect(sx - sh/4, (h-sh)/2, sh/2, sh);
+                } else {
+                    ctx.fillStyle = 'rgba(88, 101, 242, 0.7)';
+                    ctx.fillRect(sx - sh/6, h/2 - sh/3, sh/3, sh/2);
+                }
+            }
+        }
+    });
+
+    drawMinimap(w, h);
+}
+
+function drawMinimap(w, h) {
+    const s = 12, p = 25;
+    const mw = worldMap[0].length * s, mh = worldMap.length * s;
+    const ox = w - mw - p, oy = p;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.beginPath(); ctx.roundRect(ox-5, oy-5, mw+10, mh+10, 10); ctx.fill();
+    
+    for (let y = 0; y < worldMap.length; y++) {
+        for (let x = 0; x < worldMap[0].length; x++) {
+            if (worldMap[y][x] === 1) { ctx.fillStyle = '#444'; ctx.fillRect(ox+x*s, oy+y*s, s-1, s-1); }
+            if (worldMap[y][x] === 2) { ctx.fillStyle = 'var(--danger)'; ctx.fillRect(ox+x*s, oy+y*s, s-1, s-1); }
+        }
+    }
+    // 標記
+    ctx.fillStyle = '#2ed573'; ctx.beginPath(); ctx.arc(ox+13.5*s, oy+1.5*s, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = '#f1c40f'; ctx.save(); ctx.translate(ox+player.x*s, oy+player.y*s); ctx.rotate(player.dir);
+    ctx.beginPath(); ctx.moveTo(5,0); ctx.lineTo(-4,-4); ctx.lineTo(-4,4); ctx.fill(); ctx.restore();
+    Object.values(otherPlayers).forEach(p => { ctx.fillStyle = '#5865f2'; ctx.beginPath(); ctx.arc(ox+p.x*s, oy+p.y*s, 2.5, 0, 7); ctx.fill(); });
+    ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(ox+monster.x*s, oy+monster.y*s, 3, 0, 7); ctx.fill();
+}
+
+// --- 6. 測驗機制 ---
+function triggerQuiz(x, y) {
+    const overlay = document.getElementById('quiz-overlay');
+    if (overlay.style.display === 'flex') return;
+    const quiz = questionBank[Math.floor(Math.random() * questionBank.length)];
+    if (!quiz) return;
+    
+    document.getElementById('q-text').innerText = quiz.q;
+    const opts = [quiz.a, ...quiz.b].sort(() => Math.random() - 0.5);
+    const container = document.getElementById('q-options');
+    container.innerHTML = '';
+    
+    const card = document.getElementById('quiz-card');
+    const msg = document.getElementById('quiz-msg');
+    const combo = document.getElementById('monster-combo');
+
+    if (isMonsterQuiz) { card.classList.add('monster-mode'); msg.innerText = "💀 [ GHOST ENTRAPMENT ]"; combo.style.display = 'block'; combo.innerText = `逃脫進度: ${monsterCombo} / 3`; }
+    else { card.classList.remove('monster-mode'); msg.innerText = "[ SECURITY LOCK ]"; combo.style.display = 'none'; }
+
+    opts.forEach(o => {
+        const btn = document.createElement('button');
+        btn.innerText = o;
+        btn.onclick = () => {
+            if (o === quiz.a) {
+                if (isMonsterQuiz) {
+                    monsterCombo++;
+                    if (monsterCombo >= 3) { isMonsterQuiz = false; overlay.style.display = 'none'; monster.x = 13.5; monster.y = 7.5; showMessage("逃生成功！", "var(--success)"); }
+                    else triggerQuiz();
+                } else { syncWallBroken(y, x); overlay.style.display = 'none'; showMessage("核心解鎖！團隊能量上升", "var(--success)"); }
+            } else {
+                monsterCombo = 0;
+                if (isMonsterQuiz) triggerQuiz();
+                else { document.getElementById('quiz-msg').innerText = "❌ ERROR: WRONG SEQUENCE"; setTimeout(() => document.getElementById('quiz-msg').innerText = "[ SECURITY LOCK ]", 1000); }
+            }
+        };
+        container.appendChild(btn);
+    });
+    overlay.style.display = 'flex';
+}
+
+window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+initMultiplayer();
+</script>
+</body>
+</html>
