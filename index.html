@@ -3,235 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vocab Quest 3D - 英雄榜版</title>
+    <title>Vocab Quest 3D - 完全體</title>
     <style>
         :root {
-            --primary: #5865f2;
-            --danger: #ff4757;
-            --success: #00b894;
+            --primary: #00f3ff;
+            --secondary: #bc13fe;
+            --danger: #ff2a6d;
+            --success: #05f874;
             --warning: #fdcb6e;
-            --gold: #ffeaa7;
-            --bg: #020205;
-            --panel-bg: rgba(15, 15, 25, 0.95);
+            --bg: #050510;
+            --panel-bg: rgba(15, 20, 35, 0.9);
         }
-        body { margin: 0; background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
         canvas { display: block; }
 
         /* HUD */
         #hud {
             position: absolute; top: 20px; left: 20px; z-index: 10;
-            background: var(--panel-bg); padding: 20px; border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px);
-            pointer-events: none; width: 260px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            background: var(--panel-bg); padding: 20px; border-radius: 12px;
+            border: 1px solid var(--primary); backdrop-filter: blur(10px);
+            pointer-events: none; width: 260px; box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            display: none;
         }
-        #hud h1 { margin: 0; font-size: 20px; letter-spacing: 1px; color: #fff; text-shadow: 0 0 10px var(--primary); }
-        #hud p { margin: 8px 0 0; font-size: 13px; opacity: 0.9; }
-        .progress-container { margin-top: 15px; }
-        .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-        #progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--success); }
+        #hud h1 { margin: 0; font-size: 22px; letter-spacing: 2px; color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+        #hud p { margin: 8px 0 0; font-size: 13px; color: #ccc; }
+        .progress-bar { width: 100%; height: 6px; background: #333; margin-top: 5px; border-radius: 3px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: var(--success); box-shadow: 0 0 10px var(--success); transition: width 0.3s; }
 
-        /* Login Overlay */
+        /* Lobby */
         #login-overlay {
-            position: fixed; inset: 0; background: rgba(2, 2, 5, 0.95); z-index: 20000;
+            position: fixed; inset: 0; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); z-index: 20000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(10px);
         }
         .login-box {
-            background: #1e1e2f; padding: 40px; border-radius: 24px; border: 2px solid var(--primary);
-            text-align: center; width: 90%; max-width: 400px; box-shadow: 0 0 50px rgba(88, 101, 242, 0.3);
+            background: rgba(20, 20, 35, 0.9); padding: 40px; border-radius: 16px; border: 1px solid var(--primary);
+            width: 90%; max-width: 450px; text-align: center; box-shadow: 0 0 50px rgba(0, 243, 255, 0.15);
+            animation: fadeIn 0.5s ease-out;
         }
+        .login-title { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 30px; letter-spacing: 2px; text-shadow: 2px 2px 0 var(--secondary); }
         .login-input {
-            width: 80%; padding: 15px; border-radius: 12px; border: 1px solid #444;
-            background: #2b2b3d; color: white; font-size: 18px; margin-bottom: 20px; text-align: center; outline: none;
+            width: 100%; padding: 15px; border-radius: 8px; border: 1px solid #444; background: #0a0a12;
+            color: white; font-size: 18px; outline: none; box-sizing: border-box; transition: 0.3s; margin-bottom: 20px;
         }
-        .login-btn {
-            padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 12px;
-            font-size: 18px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        .login-input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 243, 255, 0.3); }
+        
+        .btn {
+            width: 100%; padding: 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; margin-bottom: 10px;
         }
-        .login-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--primary); }
+        .btn-create { background: var(--primary); color: #000; box-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
+        .btn-join { background: transparent; border: 1px solid #fff; color: #fff; }
+        .btn-single { background: var(--secondary); color: #fff; margin-bottom: 20px; box-shadow: 0 0 20px rgba(188, 19, 254, 0.4); }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.2); }
 
-        /* Win Screen (Epic Style) */
-        #win-screen {
-            position: fixed; inset: 0; background: rgba(5, 5, 10, 0.95); z-index: 10000;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; backdrop-filter: blur(15px);
-        }
-        .win-title {
-            font-size: 4rem; color: var(--success); text-shadow: 0 0 30px var(--success);
-            margin-bottom: 10px; animation: slideDown 0.8s ease-out;
-        }
-        .win-stats-card {
-            background: rgba(255, 255, 255, 0.05); padding: 30px; border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1); width: 90%; max-width: 500px;
-            margin: 20px 0; animation: fadeIn 1s ease-out 0.5s backwards;
-        }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
-        .mvp-list { margin-top: 20px; text-align: left; }
-        .mvp-item { color: var(--gold); font-weight: bold; margin: 5px 0; font-size: 16px; display: flex; align-items: center; gap: 10px; }
-        .rank-badge { background: var(--gold); color: black; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-
-        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Crosshair & HP */
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            display: flex; flex-direction: column; align-items: center; pointer-events: none;
-        }
-        #wall-hp-bar {
-            width: 140px; height: 12px; background: rgba(0,0,0,0.8); border: 2px solid #fff; border-radius: 8px; 
-            margin-top: 15px; overflow: hidden; display: none; box-shadow: 0 0 10px var(--warning);
-        }
-        #wall-hp-fill { width: 0%; height: 100%; background: var(--warning); transition: width 0.2s; }
-        #wall-hp-text { font-size: 16px; font-weight: bold; text-shadow: 1px 1px 3px black; margin-top: 5px; display: none; color: var(--warning); }
-
-        /* Controls */
-        #mobile-controls {
-            position: absolute; bottom: 30px; right: 30px; z-index: 20;
-            display: none; flex-direction: column; align-items: center; gap: 10px;
-        }
-        .control-row { display: flex; gap: 15px; }
-        .dpad-btn {
-            width: 65px; height: 65px; border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white; font-size: 24px; display: flex; align-items: center; justify-content: center;
-            touch-action: manipulation; backdrop-filter: blur(4px); transition: background 0.1s;
-        }
-        .dpad-btn:active { background: var(--primary); border-color: var(--primary); }
-        @media (max-width: 1024px) { #mobile-controls { display: flex; } }
-
+        .divider { display: flex; align-items: center; color: #555; font-size: 12px; margin: 15px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #333; }
+        
         /* Quiz */
         #quiz-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.95);
-            display: none; align-items: center; justify-content: center; z-index: 1000;
-            backdrop-filter: blur(10px);
+            position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: none;
+            align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px);
         }
         .quiz-card {
-            background: #11111d; width: 90%; max-width: 600px; padding: 40px;
-            border-radius: 24px; border: 2px solid var(--primary); text-align: center;
-            box-shadow: 0 0 60px rgba(88, 101, 242, 0.3); position: relative; overflow: hidden;
+            background: #111; width: 90%; max-width: 600px; padding: 40px; border-radius: 16px;
+            border: 2px solid var(--primary); text-align: center; position: relative;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
         }
-        .monster-mode { border-color: var(--danger) !important; box-shadow: 0 0 60px rgba(255, 71, 87, 0.4) !important; }
-        .question { font-size: 26px; font-weight: 700; margin-bottom: 30px; color: #fff; line-height: 1.4; min-height: 60px; display: flex; align-items: center; justify-content: center; }
+        .monster-mode { border-color: var(--danger) !important; box-shadow: 0 0 60px var(--danger) !important; }
+        .question { font-size: 24px; margin-bottom: 30px; line-height: 1.4; color: #fff; }
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        button {
-            padding: 18px; font-size: 18px; border: none; border-radius: 12px;
-            background: rgba(255, 255, 255, 0.08); color: #fff; cursor: pointer;
-            transition: all 0.2s; border: 1px solid rgba(255, 255, 255, 0.1); font-weight: 600;
+        .opt-btn {
+            padding: 15px; background: rgba(255,255,255,0.05); border: 1px solid #333; color: #fff;
+            cursor: pointer; border-radius: 8px; font-size: 16px; transition: 0.2s;
         }
-        button:hover { background: var(--primary); transform: scale(1.02); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .opt-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+
+        /* Jumpscare */
+        #jumpscare { position: fixed; inset: 0; z-index: 30000; background: #000; display: none; align-items: center; justify-content: center; }
+        #jumpscare img { width: 100%; height: 100%; object-fit: contain; animation: shake 0.1s infinite; }
+        @keyframes shake { 0% { transform: translate(0,0) rotate(0deg); } 25% { transform: translate(5px,5px) rotate(2deg); } 75% { transform: translate(-5px,-5px) rotate(-2deg); } }
 
         /* Feedback */
-        #feedback-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.95);
-            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20;
-        }
-        #feedback-icon { font-size: 70px; margin-bottom: 20px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #feedback-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; }
+        #feedback-icon { font-size: 80px; margin-bottom: 20px; animation: popIn 0.3s; }
         @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
-        #feedback-text { font-size: 28px; font-weight: bold; padding: 0 20px; }
-        #feedback-sub { font-size: 18px; color: #ccc; margin-top: 15px; max-width: 80%; line-height: 1.4; }
-
-        #monster-status {
-            position: absolute; top: 20px; right: 20px; padding: 10px 20px;
-            background: rgba(0,0,0,0.7); border-radius: 20px; border: 1px solid var(--danger); color: var(--danger);
-            font-size: 16px; font-weight: bold; display: none; box-shadow: 0 0 15px rgba(255, 71, 87, 0.3);
-        }
-
-        #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
-        .spinner { width: 50px; height: 50px; border: 5px solid rgba(88,101,242,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite cubic-bezier(0.5, 0.1, 0.4, 0.9); }
-        @keyframes spin { to { transform: rotate(360deg); } }
         
-        #message-box {
-            position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
-            padding: 15px 35px; border-radius: 100px; background: var(--panel-bg);
-            border: 1px solid var(--primary); font-weight: bold; display: none; z-index: 100;
-            backdrop-filter: blur(8px); animation: fadeIn 0.3s;
-        }
+        /* Mobile Controls */
+        #mobile-controls { position: absolute; bottom: 30px; right: 30px; display: none; flex-direction: column; gap: 10px; align-items: center; z-index: 50; }
+        .dpad-row { display: flex; gap: 15px; }
+        .dpad-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; backdrop-filter: blur(4px); }
+        .dpad-btn:active { background: var(--primary); color: black; }
+        @media (max-width: 1024px) { #mobile-controls { display: flex; } }
+
+        /* Misc */
+        #monster-status { position: absolute; top: 20px; right: 20px; padding: 8px 15px; background: rgba(0,0,0,0.8); border: 1px solid var(--danger); color: var(--danger); border-radius: 20px; font-weight: bold; display: none; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+        #wall-hp-bar { width: 120px; height: 10px; background: #222; border: 1px solid #fff; margin-top: 15px; display: none; box-shadow: 0 0 10px var(--warning); }
+        #wall-hp-fill { width: 0%; height: 100%; background: var(--warning); transition: width 0.1s; }
+        #message-box { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); padding: 15px 35px; border-radius: 100px; background: var(--panel-bg); border: 1px solid var(--primary); font-weight: bold; display: none; z-index: 100; backdrop-filter: blur(8px); }
+        
+        #loading { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--primary); }
+        #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .win-title { font-size: 60px; color: var(--success); text-shadow: 0 0 30px var(--success); margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
+<img id="scare-img" src="https://i.postimg.cc/4xz0RmTx/1000021389-removebg-preview.png" style="display:none">
+<div id="jumpscare"><img src="https://i.postimg.cc/4xz0RmTx/1000021389-removebg-preview.png"></div>
+
 <div id="loading">
     <div class="spinner"></div>
-    <p style="margin-top: 20px; letter-spacing: 2px; font-size: 14px; opacity: 0.7;">正在同步團隊地牢...</p>
+    <p style="margin-top:20px; font-size:14px; opacity:0.7;">INITIALIZING AUDIO SYSTEMS...</p>
 </div>
 
 <div id="login-overlay" style="display: none;">
     <div class="login-box">
-        <h2>輸入您的姓名</h2>
-        <input type="text" id="player-name-input" class="login-input" placeholder="例如: Kevin" maxlength="10">
-        <button class="login-btn" onclick="submitName()">開始探險</button>
+        <div class="login-title">VOCAB QUEST <span style="font-size:14px; vertical-align: middle; background: var(--primary); color:black; padding:2px 5px; border-radius:4px;">PRO</span></div>
+        <button class="btn btn-single" onclick="startSinglePlayer()">👤 單人挑戰 (SOLO)</button>
+        <div class="divider"><span>OR MULTIPLAYER</span></div>
+        <input type="text" id="player-name-input" class="login-input" placeholder="輸入名字 (NAME)" maxlength="10">
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-create" onclick="createRoom()">✚ 建房</button>
+            <input type="text" id="room-code-input" class="login-input" placeholder="代碼" style="text-transform:uppercase; text-align:center; height:100%; margin:0; width:80px;">
+            <button class="btn btn-join" style="width: auto;" onclick="joinRoom()">加入</button>
+        </div>
+    </div>
+</div>
+
+<div id="hud">
+    <h1><span style="color:white;">ROOM:</span> <span id="room-id-display">SOLO</span></h1>
+    <p id="player-count">● 單人模式</p>
+    <div class="progress-container">
+        <p id="stats">團隊分數: 0</p>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+    </div>
+    <p id="goal-info" style="color: var(--warning); margin-top: 10px; font-size: 12px;">◈ 累積 50 分開啟傳送門</p>
+</div>
+
+<div id="monster-status">😈 怪物重生中: <span id="cooldown-timer">10</span>s</div>
+
+<div id="crosshair">
+    <div style="width: 4px; height: 4px; background: #00f3ff; box-shadow: 0 0 5px #00f3ff; border-radius: 50%;"></div>
+    <div id="wall-hp-bar"><div id="wall-hp-fill"></div></div>
+    <div id="wall-hp-text" style="margin-top:5px; font-weight:bold; font-size:14px; text-shadow:1px 1px 0 #000; display:none; color:var(--warning);"></div>
+</div>
+
+<div id="quiz-overlay">
+    <div class="quiz-card" id="quiz-card">
+        <div id="quiz-msg" style="color: var(--danger); font-weight: bold; margin-bottom: 20px;">[ SYSTEM LOCKED ]</div>
+        <div id="monster-combo" style="display:none; color:var(--warning); margin-bottom:15px; font-size:18px;">連續正確: 0/3</div>
+        <div class="question" id="q-text">Loading...</div>
+        <div class="options-grid" id="q-options"></div>
+        <div id="feedback-overlay">
+            <div id="feedback-icon">⭕</div>
+            <div id="feedback-text">CORRECT</div>
+            <div id="feedback-sub"></div>
+        </div>
     </div>
 </div>
 
 <div id="win-screen">
-    <div class="win-title">🏆 任務達成！</div>
-    <div class="win-stats-card">
-        <div class="stat-row">
-            <span>您的貢獻 (My Score):</span>
-            <span id="my-final-score" style="color: var(--success); font-weight: bold;">0</span>
+    <div class="win-title">VICTORY</div>
+    <div style="background:rgba(255,255,255,0.1); padding:30px; border-radius:15px; border:1px solid var(--success);">
+        <p style="font-size:20px; margin-bottom:20px;">恭喜全體逃脫成功！</p>
+        <div style="display:flex; justify-content:space-between; width:250px; font-size:18px;">
+            <span>個人得分:</span> <span id="final-score" style="color:var(--success)">0</span>
         </div>
-        <div class="stat-row">
-            <span>團隊總分 (Team Total):</span>
-            <span id="team-final-score">0</span>
+        <div style="display:flex; justify-content:space-between; width:250px; font-size:18px; margin-top:10px;">
+            <span>團隊總分:</span> <span id="final-team-score">0</span>
         </div>
-        
-        <div class="mvp-list">
-            <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">👑 榮譽英雄榜 (Top 3 MVPs)</div>
-            <div id="mvp-container">載入中...</div>
-        </div>
+        <button class="btn btn-create" style="margin-top:30px;" onclick="location.reload()">回到大廳</button>
     </div>
-    <button onclick="location.reload()" class="login-btn" style="background: var(--success);">再次挑戰</button>
 </div>
 
 <div id="message-box"></div>
 
-<div id="hud">
-    <h1>VOCAB QUEST</h1>
-    <p id="player-count">● 連線狀態檢查中...</p>
-    <div class="progress-container">
-        <p id="stats" style="margin-bottom: 5px;">團隊破牆總數: 0</p>
-        <div class="progress-bar"><div id="progress-fill"></div></div>
-    </div>
-    <p id="goal-info" style="color: var(--warning); font-size: 11px; margin-top: 8px;">◈ 需累積足夠分數開啟傳送門</p>
-</div>
-
-<!-- Mobile Controls -->
 <div id="mobile-controls">
-    <div class="control-row">
-        <div class="dpad-btn" id="btn-up">▲</div>
-    </div>
-    <div class="control-row">
+    <div class="dpad-row"><div class="dpad-btn" id="btn-up">▲</div></div>
+    <div class="dpad-row">
         <div class="dpad-btn" id="btn-left">◀</div>
         <div class="dpad-btn" id="btn-down">▼</div>
         <div class="dpad-btn" id="btn-right">▶</div>
-    </div>
-</div>
-
-<div id="monster-status">😈 怪物重生倒數: <span id="cooldown-timer">10</span>s</div>
-
-<div id="crosshair">
-    <div style="width: 4px; height: 4px; background: white; border-radius: 50%; box-shadow: 0 0 4px white;"></div>
-    <div id="wall-hp-bar"><div id="wall-hp-fill"></div></div>
-    <div id="wall-hp-text">WALL HP: 10/10</div>
-</div>
-
-<div id="user-id-display" style="position: absolute; bottom: 15px; left: 15px; font-size: 10px; opacity: 0.3;"></div>
-
-<div id="quiz-overlay">
-    <div class="quiz-card" id="quiz-card">
-        <div id="quiz-msg" style="color: var(--danger); margin-bottom: 15px; font-weight: bold; letter-spacing: 1px;">[ SYSTEM LOCKED ]</div>
-        <div id="monster-combo" style="display: none; color: var(--warning); margin-bottom: 15px; font-size: 18px;">連續正確: 0 / 3</div>
-        <div class="question" id="q-text">Loading...</div>
-        <div class="options-grid" id="q-options"></div>
-        
-        <!-- Feedback Layer -->
-        <div id="feedback-overlay">
-            <div id="feedback-icon">⭕</div>
-            <div id="feedback-text">Correct!</div>
-            <div id="feedback-sub"></div>
-        </div>
     </div>
 </div>
 
@@ -240,8 +193,51 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, runTransaction, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+// --- AUDIO CONFIG ---
+const AUDIO_URLS = {
+    bgm: "https://cdn.pixabay.com/download/audio/2025/12/18/audio_5bf582b607.mp3?filename=delosound-dark-synthwave-retro-80s-453292.mp3",
+    monsterApproach: "https://cdn.pixabay.com/download/audio/2025/12/12/audio_fe53812a72.mp3?filename=icezeke-down-low-448162.mp3",
+    win: "https://cdn.pixabay.com/download/audio/2024/12/08/audio_9e007c7afb.mp3?filename=huynhhoa89-motivational-professional-success-273811.mp3",
+    click: "https://cdn.pixabay.com/download/audio/2024/08/07/audio_d2d4fd86a1.mp3?filename=rescopicsound-ui-click-menu-modern-interface-select-medium-230477.mp3",
+    correct: "https://cdn.pixabay.com/download/audio/2026/01/24/audio_d050f34e8a.mp3?filename=dragon-studio-correct-472358.mp3",
+    wrong: "https://cdn.pixabay.com/download/audio/2023/04/23/audio_65f312a7c6.mp3?filename=u_ayf470ljcu-incorrect-buzzer-sound-147336.mp3",
+    wallHum: "https://cdn.pixabay.com/download/audio/2025/07/19/audio_a0dd52ab77.mp3?filename=pwlpl-force-field-hum-377269.mp3",
+    footstep: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d948e8b4ec.mp3?filename=freesound_community-metal-footsteps-14727.mp3",
+    breathing: "https://cdn.pixabay.com/download/audio/2024/10/04/audio_45f931da37.mp3?filename=hasin2004-breathing-fast-247449.mp3",
+    jumpscare: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_3d7d0dcf69.mp3?filename=freesound_community-fuzzy-jumpscare-80560.mp3"
+};
+
+const sounds = {};
+let audioCtxInited = false;
+
+// --- AUDIO SYSTEM ---
+function initAudio() {
+    for (let key in AUDIO_URLS) {
+        const a = new Audio(AUDIO_URLS[key]);
+        if(key === 'bgm' || key === 'wallHum' || key === 'breathing' || key === 'monsterApproach') a.loop = true;
+        a.volume = 0.5;
+        sounds[key] = a;
+    }
+    sounds.monsterApproach.volume = 0; // Starts silent
+    sounds.wallHum.volume = 0;
+    sounds.bgm.volume = 0.3;
+}
+
+function playAudio(key, restart = true) {
+    if(!sounds[key]) return;
+    if(restart) sounds[key].currentTime = 0;
+    sounds[key].play().catch(e=>{});
+}
+
+function stopAudio(key) {
+    if(!sounds[key]) return;
+    sounds[key].pause();
+    sounds[key].currentTime = 0;
+}
+
+// Firebase & Config
 const firebaseConfig = {
   apiKey: "AIzaSyCOI2MloQp3rLf2T90vxep9b4zwKsUWEIs",
   authDomain: "workshop-test-98617.firebaseapp.com",
@@ -251,26 +247,30 @@ const firebaseConfig = {
   messagingSenderId: "636905955796",
   appId: "1:636905955796:web:a01740ce01d98447d4b641"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'vocab-v3-coop';
 
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUrIh3_ELuEAFnI6VRdWWI8AnmkJKh_bplW5PTw3PgQHAyyhXgUZokKOLC0eRcBv9T-XEPti1OlEHI/pub?gid=0&single=true&output=csv";
+const MONSTER_IMG = new Image(); MONSTER_IMG.src = "https://i.postimg.cc/4xz0RmTx/1000021389-removebg-preview.png";
+const DEFAULT_Q = [{q:"Past of Eat?",a:"Ate",b:["Eaten","Eating","Eats"]}, {q:"Adj?",a:"Big",b:["Run","Fastly","Cat"]}];
 
-const DEFAULT_QUESTIONS = [
-    { q: "Past Participle of 'Eat'", a: "Eaten", b: ["Ate", "Eating", "Eats"] },
-    { q: "She has ___ home.", a: "gone", b: ["go", "went", "going"] },
-    { q: "Adjective?", a: "Beautiful", b: ["Beauty", "Beautifully", "Beautify"] },
-    { q: "Synonym of 'Happy'", a: "Joyful", b: ["Sad", "Angry", "Tired"] },
-    { q: "Antonym of 'Big'", a: "Small", b: ["Huge", "Large", "Giant"] }
-];
-
+let isOffline = false;
+let currentRoom = null;
+let userId = "guest-" + Math.floor(Math.random()*10000);
 let questionBank = [];
 let otherPlayers = {};
+let wallHits = {}; 
+const WALL_HP = 10;
 
-let worldMap = [
+const player = { x: 1.5, y: 13.5, dir: -1.57, v: 0, w: 0, score: 0, totalSolved: 0, name: "Player" };
+const monster = { x: 13.5, y: 13.5, speed: 0.012, cooldown: 0 };
+const keys = {};
+let isMonsterActive = false, monsterCombo = 0, isGameOver = false;
+let lastStepTime = 0;
+
+// Map (15x15)
+const worldMap = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,2,0,2,0,0,0,2,0,0,2,0,3,1],
     [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
@@ -288,513 +288,394 @@ let worldMap = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-const WALL_MAX_HP = 10;
-let wallHitsData = {};
-
-// Player data now tracks personal score
-const player = { x: 1.5, y: 13.5, dir: -Math.PI/2, v: 0, w: 0, fov: Math.PI / 3, totalSolved: 0, personalScore: 0, name: "Player" };
-const monster = { x: 13.5, y: 13.5, speed: 0.012, cooldownUntil: 0 };
-const keys = {};
-let userId = "", isMonsterQuiz = false, monsterCombo = 0, isGameOver = false;
-let isOfflineMode = false;
-
-window.submitName = () => {
-    const input = document.getElementById('player-name-input');
-    const name = input.value.trim();
-    if (name) {
-        player.name = name;
-        document.getElementById('login-overlay').style.display = 'none';
-        startGame();
-    } else {
-        alert("請輸入姓名！");
-    }
-};
-
-function parseCSVRow(row) {
-    let result = [];
-    let current = '';
-    let inQuote = false;
-    for (let i = 0; i < row.length; i++) {
-        let char = row[i];
-        if (char === '"') {
-            if (inQuote && row[i + 1] === '"') { 
-                current += '"'; i++;
-            } else { inQuote = !inQuote; }
-        } else if (char === ',' && !inQuote) {
-            result.push(current.trim()); current = '';
-        } else { current += char; }
-    }
-    result.push(current.trim());
-    return result;
-}
-
-const startGame = () => {
-    spawnPlayerRandomly();
-    document.getElementById('loading').style.opacity = 0;
-    setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
-    setupMobileControls();
-    gameLoop();
-};
-
-const spawnPlayerRandomly = () => {
-    let validSpots = [];
-    for(let y=1; y<worldMap.length-1; y++) {
-        for(let x=1; x<worldMap[0].length-1; x++) {
-            if(worldMap[y][x] === 0 && (x < 12 || y < 12)) {
-                validSpots.push({x: x + 0.5, y: y + 0.5});
-            }
-        }
-    }
-    if(validSpots.length > 0) {
-        const spot = validSpots[Math.floor(Math.random() * validSpots.length)];
-        player.x = spot.x; player.y = spot.y;
-    }
-};
-
-const setupMobileControls = () => {
-    const bind = (id, k) => {
-        const el = document.getElementById(id);
-        const on = (e) => { e.preventDefault(); keys[k] = true; };
-        const off = (e) => { e.preventDefault(); keys[k] = false; };
-        el.addEventListener('touchstart', on); el.addEventListener('touchend', off);
-        el.addEventListener('mousedown', on); el.addEventListener('mouseup', off);
-    };
-    bind('btn-up', 'arrowup'); bind('btn-down', 'arrowdown');
-    bind('btn-left', 'arrowleft'); bind('btn-right', 'arrowright');
-};
-
-const initSystem = async () => {
+window.onload = async () => {
+    initAudio(); // Load Audio Objects
     try {
-        const res = await fetch(SHEET_URL);
-        const csv = await res.text();
-        questionBank = csv.split(/\r?\n/).slice(1).map(line => {
-            const cols = parseCSVRow(line);
-            if (cols.length < 5) return null;
-            return { q: cols[0], a: cols[1], b: [cols[2], cols[3], cols[4]] };
-        }).filter(q => q && q.q);
-    } catch(e) { 
-        questionBank = DEFAULT_QUESTIONS;
-    }
-
-    try { await signInAnonymously(auth); } catch (e) { 
-        isOfflineMode = true; 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('login-overlay').style.display = 'flex';
-        return; 
-    }
-
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            userId = user.uid;
-            
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'players'), (snap) => {
-                snap.docChanges().forEach(c => {
-                    if (c.type === "removed") delete otherPlayers[c.doc.id];
-                    else if (c.doc.id !== userId) otherPlayers[c.doc.id] = c.doc.data();
-                });
-                document.getElementById('player-count').innerText = `● 在線探險家: ${Object.keys(otherPlayers).length + 1}`;
-            });
-
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'worldState', 'global'), (snap) => {
-                if (snap.exists()) {
-                    const data = snap.data();
-                    player.totalSolved = data.totalSolved || 0;
-                    wallHitsData = data.wallHits || {}; 
-                    for(let key in wallHitsData) {
-                        const [wy, wx] = key.split(',').map(Number);
-                        if (wallHitsData[key] >= WALL_MAX_HP && worldMap[wy][wx] === 2) worldMap[wy][wx] = 0;
-                    }
-                    updateStats();
-                }
-            });
-
-            setInterval(syncMyPosition, 100);
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('login-overlay').style.display = 'flex';
-        }
-    });
+        const t = await (await fetch(SHEET_URL)).text();
+        questionBank = parseCSV(t);
+    } catch(e) { questionBank = DEFAULT_Q; }
+    try {
+        await signInAnonymously(auth);
+        onAuthStateChanged(auth, u => { if(u) userId = u.uid; });
+    } catch(e) { console.log("Offline"); }
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('login-overlay').style.display = 'flex';
 };
 
-async function syncMyPosition() {
-    if (!userId || isGameOver || isOfflineMode) return;
-    try { 
-        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', userId), { 
-            x: player.x, y: player.y, dir: player.dir, 
-            name: player.name, score: player.personalScore, // 同步個人分數
-            time: Date.now() 
-        }, { merge: true }); 
-    } catch(e) {}
+function parseCSV(text) {
+    return text.split(/\r?\n/).slice(1).map(line => {
+        const c = []; let cur = '', inQ = false;
+        for(let ch of line) {
+            if(ch === '"') { if(inQ && line[line.indexOf(ch)+1]==='"') cur+='"'; else inQ=!inQ; }
+            else if(ch===',' && !inQ) { c.push(cur.trim()); cur=''; }
+            else cur+=ch;
+        }
+        c.push(cur.trim());
+        return c.length >= 5 ? {q:c[0], a:c[1], b:[c[2],c[3],c[4]]} : null;
+    }).filter(x=>x);
 }
 
-async function hitWall(y, x) {
-    if (isOfflineMode) {
-        const key = `${y},${x}`;
-        wallHitsData[key] = (wallHitsData[key] || 0) + 1;
-        player.totalSolved++;
-        if (wallHitsData[key] >= WALL_MAX_HP) worldMap[y][x] = 0;
-        updateStats();
-        return;
-    }
+// Menu
+window.startSinglePlayer = () => { playAudio('click'); isOffline=true; player.name="Solo"; startGame(); };
+window.createRoom = async () => {
+    playAudio('click');
+    const name = document.getElementById('player-name-input').value.trim();
+    if(!name) return alert("請輸入名字");
+    currentRoom = "GAME-" + Math.floor(1000 + Math.random()*9000);
+    player.name = name;
+    if(!isOffline) try { await setDoc(doc(db, 'artifacts', currentRoom, 'public', 'data', 'worldState', 'global'), { wallHits:{}, totalSolved:0 }); } catch(e){ isOffline=true; }
+    joinGameLogic();
+};
+window.joinRoom = () => {
+    playAudio('click');
+    const name = document.getElementById('player-name-input').value.trim();
+    const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+    if(!name || !code) return alert("請輸入資訊");
+    currentRoom = code; player.name = name;
+    joinGameLogic();
+};
 
-    const worldRef = doc(db, 'artifacts', appId, 'public', 'data', 'worldState', 'global');
-    const key = `${y},${x}`;
+function joinGameLogic() {
+    isOffline = false;
+    document.getElementById('room-id-display').innerText = currentRoom;
+    setupNet();
+    startGame();
+}
+
+function startGame() {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('hud').style.display = 'block';
+    // Random Spawn
+    const spots = [];
+    for(let y=1; y<14; y++) for(let x=1; x<14; x++) if(worldMap[y][x]===0 && (x<10||y<10)) spots.push({x:x+0.5, y:y+0.5});
+    const s = spots[Math.floor(Math.random()*spots.length)];
+    player.x = s.x; player.y = s.y;
+    setupControls();
     
-    try {
-        await runTransaction(db, async (transaction) => {
-            const sfDoc = await transaction.get(worldRef);
-            if (!sfDoc.exists()) {
-                transaction.set(worldRef, { wallHits: { [key]: 1 }, totalSolved: 1 });
-            } else {
-                const data = sfDoc.data();
-                const hits = data.wallHits || {};
-                hits[key] = (hits[key] || 0) + 1;
-                transaction.update(worldRef, { wallHits: hits, totalSolved: (data.totalSolved || 0) + 1 });
+    // Start Ambience
+    playAudio('bgm');
+    sounds.monsterApproach.play(); // Start looping but volume is 0
+    sounds.wallHum.play();
+    
+    requestAnimationFrame(gameLoop);
+}
+
+function setupNet() {
+    if(isOffline) return;
+    onSnapshot(collection(db, 'artifacts', currentRoom, 'public', 'data', 'players'), snap => {
+        snap.docChanges().forEach(c => {
+            if(c.doc.id === userId) return;
+            if(c.type === "removed") delete otherPlayers[c.doc.id];
+            else otherPlayers[c.doc.id] = c.doc.data();
+        });
+        document.getElementById('player-count').innerText = `● 線上: ${Object.keys(otherPlayers).length + 1}`;
+    });
+    onSnapshot(doc(db, 'artifacts', currentRoom, 'public', 'data', 'worldState', 'global'), snap => {
+        if(snap.exists()) {
+            const d = snap.data();
+            player.totalSolved = d.totalSolved || 0;
+            wallHits = d.wallHits || {};
+            updateHUD();
+        }
+    });
+    setInterval(() => {
+        if(!currentRoom || isGameOver) return;
+        setDoc(doc(db, 'artifacts', currentRoom, 'public', 'data', 'players', userId), {
+            x: player.x, y: player.y, dir: player.dir, name: player.name, time: Date.now()
+        }, {merge:true});
+    }, 500);
+}
+
+async function netHitWall(y, x) {
+    const k = `${y},${x}`;
+    if(isOffline) {
+        wallHits[k] = (wallHits[k]||0)+1; player.totalSolved++; updateHUD();
+    } else {
+        const ref = doc(db, 'artifacts', currentRoom, 'public', 'data', 'worldState', 'global');
+        await runTransaction(db, async (t) => {
+            const doc = await t.get(ref);
+            if(!doc.exists()) t.set(ref, { wallHits: {[k]:1}, totalSolved:1 });
+            else {
+                const d = doc.data();
+                const hits = d.wallHits || {};
+                hits[k] = (hits[k]||0)+1;
+                t.update(ref, { wallHits: hits, totalSolved: (d.totalSolved||0)+1 });
             }
         });
-    } catch (e) { console.error("Hit Wall Error", e); }
-}
-
-function updateStats() {
-    const req = 50; 
-    const progress = Math.min(100, (player.totalSolved / req) * 100);
-    document.getElementById('stats').innerText = `團隊破牆總數: ${player.totalSolved}`;
-    document.getElementById('progress-fill').style.width = `${progress}%`;
-    if (progress >= 100) {
-        document.getElementById('goal-info').innerText = "◈ 傳送門能量已充滿！";
-        document.getElementById('goal-info').style.color = "var(--success)";
     }
 }
 
-// --- 遊戲邏輯 ---
-function showMessage(text, color = "var(--primary)") {
-    const box = document.getElementById('message-box');
-    box.innerText = text; box.style.borderColor = color; box.style.display = 'block';
-    setTimeout(() => box.style.display = 'none', 3000);
+function updateHUD() {
+    const max = 50; const pct = Math.min(100, (player.totalSolved/max)*100);
+    document.getElementById('stats').innerText = `團隊分數: ${player.totalSolved}`;
+    document.getElementById('progress-fill').style.width = `${pct}%`;
+    if(pct>=100) document.getElementById('goal-info').style.color = "var(--success)";
 }
 
-// 粒子特效
-let confettiParticles = [];
-function createConfetti() {
-    for (let i = 0; i < 150; i++) {
-        confettiParticles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height - canvas.height,
-            color: `hsl(${Math.random()*360}, 100%, 50%)`,
-            size: Math.random() * 8 + 4,
-            speed: Math.random() * 5 + 2,
-            drift: Math.random() * 2 - 1
-        });
-    }
-}
-function drawConfetti() {
-    confettiParticles.forEach((p, i) => {
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, p.size, p.size);
-        p.y += p.speed;
-        p.x += p.drift;
-        if (p.y > canvas.height) confettiParticles.splice(i, 1);
-    });
-    if (confettiParticles.length < 100 && isGameOver) createConfetti();
-}
+const cvs = document.getElementById('canvas');
+const ctx = cvs.getContext('2d', { alpha: false });
 
 function gameLoop() {
-    if (isGameOver) {
-        // 在背景繼續畫 confetti
-        ctx.fillStyle = 'rgba(0,0,0,0.1)';
-        ctx.fillRect(0,0,canvas.width, canvas.height);
-        drawConfetti();
-        requestAnimationFrame(gameLoop);
-        return;
-    }
-    updateEntities();
+    if(isGameOver) return;
+    update();
     render();
     requestAnimationFrame(gameLoop);
 }
 
-let facingWall = null; 
+function update() {
+    if(document.getElementById('quiz-overlay').style.display === 'flex') return;
+    if(document.getElementById('jumpscare').style.display === 'flex') return;
 
-function updateEntities() {
-    if (document.getElementById('quiz-overlay').style.display === 'flex') return;
-    
     const up = keys['w'] || keys['arrowup'];
     const down = keys['s'] || keys['arrowdown'];
     const left = keys['a'] || keys['arrowleft'];
     const right = keys['d'] || keys['arrowright'];
 
-    if (up) player.v = 0.06; else if (down) player.v = -0.06; else player.v *= 0.8;
-    if (left) player.w = -0.05; else if (right) player.w = 0.05; else player.w *= 0.8;
+    if(up) player.v = 0.07; else if(down) player.v = -0.05; else player.v *= 0.8;
+    if(left) player.w = -0.04; else if(right) player.w = 0.04; else player.w *= 0.7;
+    
+    // Footsteps
+    if((Math.abs(player.v) > 0.01) && Date.now() - lastStepTime > 500) {
+        playAudio('footstep');
+        lastStepTime = Date.now();
+    }
+
     player.dir += player.w;
-    
-    const nx = player.x + Math.cos(player.dir) * player.v, ny = player.y + Math.sin(player.dir) * player.v;
-    const cell = worldMap[Math.floor(ny)] ? worldMap[Math.floor(ny)][Math.floor(nx)] : 1;
-    
-    const rayDist = 1.5;
-    const fx = player.x + Math.cos(player.dir) * rayDist;
-    const fy = player.y + Math.sin(player.dir) * rayDist;
-    const fCell = worldMap[Math.floor(fy)] ? worldMap[Math.floor(fy)][Math.floor(fx)] : 0;
-    
-    const hpBar = document.getElementById('wall-hp-bar');
-    const hpText = document.getElementById('wall-hp-text');
-    
-    if (fCell === 2) {
-        facingWall = { x: Math.floor(fx), y: Math.floor(fy) };
-        const key = `${facingWall.y},${facingWall.x}`;
-        const hits = wallHitsData[key] || 0;
-        const hp = Math.max(0, WALL_MAX_HP - hits);
-        hpBar.style.display = 'block';
-        hpText.style.display = 'block';
-        document.getElementById('wall-hp-fill').style.width = `${(hp/WALL_MAX_HP)*100}%`;
-        hpText.innerText = `WALL HP: ${hp}/${WALL_MAX_HP}`;
-    } else {
-        facingWall = null;
-        hpBar.style.display = 'none';
-        hpText.style.display = 'none';
-    }
+    const nx = player.x + Math.cos(player.dir)*player.v;
+    const ny = player.y + Math.sin(player.dir)*player.v;
 
-    if (cell === 0) { player.x = nx; player.y = ny; }
-    else if (cell === 2) triggerQuiz(Math.floor(nx), Math.floor(ny));
-    else if (cell === 3) {
-        if (player.totalSolved >= 50) { winGame(); }
-        else { showMessage("分數不足！團隊需更多合作。", "var(--warning)"); player.v = -0.2; }
-    }
+    const checkWall = (x, y) => {
+        const cell = worldMap[Math.floor(y)]?.[Math.floor(x)];
+        if(cell === 1) return true;
+        if(cell === 2) {
+            const hp = WALL_HP - (wallHits[`${Math.floor(y)},${Math.floor(x)}`] || 0);
+            return hp > 0;
+        }
+        if(cell === 3) {
+            if(player.totalSolved >= 50) win();
+            else { showMessage("需要 50 分！", "var(--warning)"); player.v = -0.2; return true; }
+        }
+        return false;
+    };
 
-    if (monster.cooldownUntil > Date.now()) {
+    if(!checkWall(nx, player.y)) player.x = nx;
+    if(!checkWall(player.x, ny)) player.y = ny;
+
+    // Monster AI & Audio
+    if(monster.cooldown > Date.now()) {
         document.getElementById('monster-status').style.display = 'block';
-        document.getElementById('cooldown-timer').innerText = Math.ceil((monster.cooldownUntil - Date.now())/1000);
-        monster.x = 1000; 
+        document.getElementById('cooldown-timer').innerText = Math.ceil((monster.cooldown - Date.now())/1000);
+        monster.x = 1000;
+        sounds.monsterApproach.volume = 0;
+        sounds.breathing.pause();
     } else {
         document.getElementById('monster-status').style.display = 'none';
-        if (monster.x === 1000) { monster.x = 13.5; monster.y = 13.5; }
+        if(monster.x > 100) { monster.x = 13.5; monster.y = 13.5; }
+        
         const dx = player.x - monster.x, dy = player.y - monster.y;
-        if (Math.sqrt(dx*dx + dy*dy) < 0.6) { isMonsterQuiz = true; monsterCombo = 0; triggerQuiz(); }
-        monster.x += (dx/Math.sqrt(dx*dx + dy*dy)) * monster.speed; 
-        monster.y += (dy/Math.sqrt(dx*dx + dy*dy)) * monster.speed;
-    }
-}
-
-// 獲勝邏輯
-async function winGame() {
-    isGameOver = true;
-    document.getElementById('win-screen').style.display = 'flex';
-    document.getElementById('my-final-score').innerText = player.personalScore;
-    document.getElementById('team-final-score').innerText = player.totalSolved;
-    createConfetti();
-
-    // 獲取 MVP
-    let allPlayers = [{ name: player.name, score: player.personalScore }];
-    for (let id in otherPlayers) {
-        if(otherPlayers[id].score !== undefined) {
-            allPlayers.push({ name: otherPlayers[id].name, score: otherPlayers[id].score });
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        // Monster Audio Logic
+        if(dist < 8) {
+            const vol = 1 - (dist / 8);
+            sounds.monsterApproach.volume = Math.max(0, Math.min(1, vol));
+        } else {
+            sounds.monsterApproach.volume = 0;
         }
-    }
-    allPlayers.sort((a,b) => b.score - a.score);
-    
-    const mvpContainer = document.getElementById('mvp-container');
-    mvpContainer.innerHTML = '';
-    allPlayers.slice(0, 3).forEach((p, i) => {
-        mvpContainer.innerHTML += `
-            <div class="mvp-item">
-                <div class="rank-badge">${i+1}</div>
-                <span>${p.name}</span>
-                <span style="margin-left:auto; color: white;">${p.score} pt</span>
-            </div>
-        `;
-    });
-}
+        
+        if(dist < 2.5) playAudio('breathing', false); // Start breathing if close
+        else sounds.breathing.pause();
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+        if(dist < 0.6) {
+            playAudio('jumpscare');
+            triggerJumpscare();
+            setTimeout(() => { isMonsterActive = true; monsterCombo = 0; startQuiz(); }, 1000);
+        }
+        monster.x += (dx/dist) * monster.speed;
+        monster.y += (dy/dist) * monster.speed;
+    }
+
+    // Wall Hum Audio
+    const rayD = 1.5;
+    const fx = Math.floor(player.x + Math.cos(player.dir)*rayD);
+    const fy = Math.floor(player.y + Math.sin(player.dir)*rayD);
+    const fCell = worldMap[fy]?.[fx];
+    
+    if(fCell === 2 && (WALL_HP - (wallHits[`${fy},${fx}`]||0)) > 0) {
+        sounds.wallHum.volume = 0.6;
+        document.getElementById('wall-hp-bar').style.display = 'block';
+        document.getElementById('wall-hp-text').style.display = 'block';
+        document.getElementById('wall-hp-fill').style.width = `${((WALL_HP-(wallHits[`${fy},${fx}`]||0))/WALL_HP)*100}%`;
+        document.getElementById('wall-hp-text').innerText = `WALL HP: ${WALL_HP-(wallHits[`${fy},${fx}`]||0)}/${WALL_HP}`;
+        if(keys[' ']) { keys[' '] = false; startQuiz(fx, fy); }
+    } else {
+        sounds.wallHum.volume = 0;
+        document.getElementById('wall-hp-bar').style.display = 'none';
+        document.getElementById('wall-hp-text').style.display = 'none';
+    }
+}
 
 function render() {
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    const w = canvas.width, h = canvas.height;
-    
-    const sky = ctx.createLinearGradient(0,0,0,h/2); sky.addColorStop(0,'#050510'); sky.addColorStop(1,'#222');
+    cvs.width = window.innerWidth; cvs.height = window.innerHeight;
+    const w = cvs.width, h = cvs.height;
+    const sky = ctx.createLinearGradient(0,0,0,h/2); sky.addColorStop(0, '#000'); sky.addColorStop(1, '#112');
     ctx.fillStyle = sky; ctx.fillRect(0,0,w,h/2);
-    const floor = ctx.createLinearGradient(0,h/2,0,h); floor.addColorStop(0,'#1a1a1a'); floor.addColorStop(1,'#000');
+    ctx.fillStyle = '#fff'; for(let i=0; i<30; i++) ctx.fillRect(Math.random()*w, Math.random()*h/2, 1, 1);
+    const floor = ctx.createLinearGradient(0,h/2,0,h); floor.addColorStop(0, '#1a1a2e'); floor.addColorStop(1, '#000');
     ctx.fillStyle = floor; ctx.fillRect(0,h/2,w,h/2);
 
-    const zBuffer = new Array(w).fill(Infinity);
-    
-    for (let i = 0; i < w; i++) {
-        const rayAngle = (player.dir - player.fov/2) + (i/w)*player.fov;
-        let d = 0, hit = 0, x = player.x, y = player.y, side = 0;
-        const sx = Math.cos(rayAngle)*0.01, sy = Math.sin(rayAngle)*0.01;
-
-        while (hit === 0 && d < 14) {
-            x += sx; d += 0.01; side = 0;
-            if (worldMap[Math.floor(y)][Math.floor(x)] > 0) { hit = worldMap[Math.floor(y)][Math.floor(x)]; break; }
-            y += sy; side = 1;
-            if (worldMap[Math.floor(y)][Math.floor(x)] > 0) { hit = worldMap[Math.floor(y)][Math.floor(x)]; break; }
+    const zBuffer = new Array(w);
+    for(let i=0; i<w; i++) {
+        const rayA = (player.dir - player.fov/2) + (i/w)*player.fov;
+        let dist = 0, hit = 0;
+        const sin = Math.sin(rayA), cos = Math.cos(rayA);
+        let rx = player.x, ry = player.y;
+        while(hit===0 && dist<16) {
+            rx += cos*0.05; ry += sin*0.05; dist += 0.05;
+            const mx = Math.floor(rx), my = Math.floor(ry);
+            const cell = worldMap[my]?.[mx];
+            if(cell === 1) hit = 1;
+            else if(cell === 2) {
+                const hp = WALL_HP - (wallHits[`${my},${mx}`]||0);
+                if(hp > 0) hit = 2;
+            } else if(cell === 3) hit = 3;
         }
-        
-        const realD = d * Math.cos(rayAngle - player.dir);
-        zBuffer[i] = realD;
-        const wh = h / realD;
-        
-        let color = '#444';
-        if (hit === 2) { 
-            const key = `${Math.floor(y)},${Math.floor(x)}`;
-            const hits = wallHitsData[key] || 0;
-            const hpRatio = Math.max(0, (WALL_MAX_HP - hits) / WALL_MAX_HP);
-            color = `hsl(${hpRatio * 120}, 60%, ${20 + hpRatio * 30}%)`; 
-        } else if (hit === 3) color = '#2ed573';
-        
-        if (side === 1) ctx.globalAlpha = 0.7;
-        ctx.fillStyle = color; ctx.fillRect(i, (h-wh)/2, 1, wh);
-        ctx.globalAlpha = 1.0;
-        ctx.fillStyle = `rgba(0,0,0,${Math.min(1, realD/12)})`; ctx.fillRect(i, (h-wh)/2, 1, wh);
+        dist *= Math.cos(rayA - player.dir);
+        const wh = h / dist;
+        zBuffer[i] = dist;
+        if(hit === 1) {
+            const shade = Math.max(0, 150 - dist*10);
+            ctx.fillStyle = `rgb(0, 0, ${shade})`; ctx.fillRect(i, (h-wh)/2, 1, wh);
+            ctx.fillStyle = '#00f3ff'; ctx.fillRect(i, (h-wh)/2, 1, 2); ctx.fillRect(i, (h+wh)/2 - 2, 1, 2);
+        } else if(hit === 2) {
+            const shade = Math.max(20, 60 - dist*5);
+            ctx.fillStyle = `hsl(15, 100%, ${shade}%)`; ctx.fillRect(i, (h-wh)/2, 1, wh);
+            if (i % 4 === 0) { ctx.fillStyle = `rgba(255, 100, 0, 0.5)`; ctx.fillRect(i, (h-wh)/2, 1, wh); }
+        } else if(hit === 3) {
+            ctx.fillStyle = `hsl(140, 100%, ${Math.max(10, 50-dist*3)}%)`; ctx.fillRect(i, (h-wh)/2, 1, wh);
+        }
     }
 
-    const sprites = [{ x: monster.x, y: monster.y, type: 'monster' }, { x: 13.5, y: 1.5, type: 'goal' }];
-    Object.values(otherPlayers).forEach(p => sprites.push({ ...p, type: 'player' }));
-    sprites.sort((a,b) => {
-        return (Math.pow(player.x-b.x,2)+Math.pow(player.y-b.y,2)) - (Math.pow(player.x-a.x,2)+Math.pow(player.y-a.y,2));
-    });
+    const sprites = [{x:monster.x, y:monster.y, type:'mob'}];
+    Object.values(otherPlayers).forEach(p => sprites.push({...p, type:'player'}));
+    sprites.sort((a,b) => ((player.x-b.x)**2+(player.y-b.y)**2) - ((player.x-a.x)**2+(player.y-a.y)**2));
 
-    sprites.forEach(s => {
+    for(let s of sprites) {
         const dx = s.x - player.x, dy = s.y - player.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
         let ang = Math.atan2(dy, dx) - player.dir;
-        while (ang < -Math.PI) ang += Math.PI * 2;
-        while (ang > Math.PI) ang -= Math.PI * 2;
-        
-        if (Math.abs(ang) < player.fov) {
-            const sx = (0.5 * (ang / (player.fov / 2)) + 0.5) * w;
-            const sh = h / dist;
-            if (dist < zBuffer[Math.floor(sx)]) {
-                if (s.type === 'monster') {
-                    ctx.fillStyle = `rgba(255, 0, 0, ${0.7 + Math.sin(Date.now()/200)*0.3})`;
-                    ctx.fillRect(sx-sh/4, (h-sh)/2, sh/2, sh);
-                } else if (s.type === 'player') {
-                    ctx.fillStyle = 'cyan'; ctx.fillRect(sx-sh/6, h/2, sh/3, sh/2);
-                    if (s.name) {
-                        ctx.fillStyle = 'white'; ctx.font = '12px Arial'; ctx.textAlign = 'center';
-                        ctx.fillText(s.name, sx, h/2 - sh/2 - 5);
-                    }
-                } else {
-                    ctx.fillStyle = '#2ed573'; ctx.beginPath(); ctx.arc(sx, h/2, sh/4, 0, Math.PI*2); ctx.fill();
+        while(ang < -Math.PI) ang += Math.PI*2; while(ang > Math.PI) ang -= Math.PI*2;
+        if(Math.abs(ang) < player.fov/1.5 && dist > 0.1) {
+            const sx = (0.5 * (ang/(player.fov/2)) + 0.5) * w;
+            const size = h / dist;
+            if(dist < (zBuffer[Math.floor(sx)] || Infinity)) {
+                if(s.type === 'mob') { try { ctx.drawImage(MONSTER_IMG, sx-size/2, (h-size)/2, size, size); } catch(e) { ctx.fillStyle = 'red'; ctx.fillRect(sx-size/4, (h-size)/2, size/2, size); } } 
+                else { 
+                    ctx.fillStyle = '#00f3ff'; ctx.fillRect(sx-size/6, h/2, size/3, size/2);
+                    ctx.fillStyle = '#fff'; ctx.font = '12px Arial'; ctx.textAlign = 'center'; ctx.fillText(s.name||'?', sx, h/2 - 10);
                 }
             }
         }
-    });
-    
-    drawMinimap(w);
-}
-
-function drawMinimap(w) {
-    const s = 8, p = 10, mw = 15*s, mh = 15*s;
-    const ox = w - mw - p, oy = p;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(ox, oy, mw, mh);
-    
-    for(let y=0; y<15; y++) {
-        for(let x=0; x<15; x++) {
-            if (worldMap[y][x] === 1) { ctx.fillStyle = '#555'; ctx.fillRect(ox+x*s, oy+y*s, s, s); }
-            if (worldMap[y][x] === 2) { 
-                const hits = wallHitsData[`${y},${x}`] || 0;
-                ctx.fillStyle = hits >= 5 ? '#e74c3c' : '#f1c40f'; 
-                ctx.fillRect(ox+x*s, oy+y*s, s, s); 
-            }
-        }
     }
-    ctx.fillStyle = 'yellow'; ctx.fillRect(ox+player.x*s-2, oy+player.y*s-2, 4, 4);
-    if (monster.x < 100) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(ox+monster.x*s, oy+monster.y*s, 3, 0, 7); ctx.fill(); }
 }
 
-function triggerQuiz(wx, wy) {
-    const overlay = document.getElementById('quiz-overlay');
-    if (overlay.style.display === 'flex') return;
-
-    let currentQuiz = null;
-    const loadNextQuestion = () => {
-        currentQuiz = questionBank[Math.floor(Math.random() * questionBank.length)] || DEFAULT_QUESTIONS[0];
-        document.getElementById('q-text').innerText = currentQuiz.q;
-        const opts = [currentQuiz.a, ...currentQuiz.b].sort(() => Math.random() - 0.5);
-        const container = document.getElementById('q-options');
-        container.innerHTML = '';
-        
-        opts.forEach(o => {
-            const btn = document.createElement('button');
-            btn.innerText = o;
-            btn.onclick = () => handleAnswer(o, currentQuiz.a, wx, wy, loadNextQuestion);
-            container.appendChild(btn);
-        });
-    };
-
+function startQuiz(wx, wy) {
+    playAudio('click');
+    document.getElementById('quiz-overlay').style.display = 'flex';
     const card = document.getElementById('quiz-card');
     const msg = document.getElementById('quiz-msg');
-    const combo = document.getElementById('monster-combo');
-
-    if (isMonsterQuiz) {
-        card.classList.add('monster-mode');
-        msg.innerText = "💀 GHOST TRAP ACTIVE";
-        combo.style.display = 'block';
-        combo.innerText = `連續正確: ${monsterCombo} / 3`;
+    if(isMonsterActive) {
+        card.classList.add('monster-mode'); msg.innerText = "💀 緊急迴避 (EVASION)";
+        document.getElementById('monster-combo').style.display = 'block';
     } else {
-        card.classList.remove('monster-mode');
-        const hits = wallHitsData[`${wy},${wx}`] || 0;
-        msg.innerText = `[ TARGET HP: ${Math.max(0, WALL_MAX_HP - hits)} ]`;
-        combo.style.display = 'none';
+        card.classList.remove('monster-mode'); msg.innerText = "⚡ 防火牆破解 (HACKING)";
+        document.getElementById('monster-combo').style.display = 'none';
     }
-
-    loadNextQuestion();
-    overlay.style.display = 'flex';
+    nextQuestion(wx, wy);
 }
 
-function handleAnswer(selected, correct, wx, wy, nextFn) {
-    const feedback = document.getElementById('feedback-overlay');
-    const icon = document.getElementById('feedback-icon');
-    const text = document.getElementById('feedback-text');
-    const sub = document.getElementById('feedback-sub');
-    
-    const btns = document.querySelectorAll('#q-options button');
-    btns.forEach(b => b.disabled = true);
+function nextQuestion(wx, wy) {
+    const q = questionBank[Math.floor(Math.random()*questionBank.length)] || DEFAULT_Q[0];
+    document.getElementById('q-text').innerText = q.q;
+    const opts = [q.a, ...q.b].sort(()=>Math.random()-0.5);
+    const container = document.getElementById('q-options');
+    container.innerHTML = '';
+    opts.forEach(o => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-btn'; btn.innerText = o;
+        btn.onclick = () => answer(o, q.a, wx, wy);
+        container.appendChild(btn);
+    });
+}
 
-    const isCorrect = selected === correct;
+function answer(choice, correct, wx, wy) {
+    playAudio('click');
+    const fb = document.getElementById('feedback-overlay');
+    const icon = document.getElementById('feedback-icon');
+    const txt = document.getElementById('feedback-text');
+    fb.style.display = 'flex';
     
-    feedback.style.display = 'flex';
-    if (isCorrect) {
-        icon.innerText = "⭕"; text.innerText = "Correct!"; text.style.color = "var(--success)"; sub.innerText = "";
-        player.personalScore++; // 增加個人分數
+    if(choice === correct) {
+        playAudio('correct');
+        icon.innerText = "⭕"; txt.innerText = "CORRECT"; txt.style.color = "#05f874";
+        player.score += 10;
     } else {
-        icon.innerText = "❌"; text.innerText = "Wrong!"; text.style.color = "var(--danger)"; sub.innerText = `Answer: ${correct}`;
+        playAudio('wrong');
+        icon.innerText = "❌"; txt.innerText = "WRONG"; txt.style.color = "#ff2a6d";
+        document.getElementById('feedback-sub').innerText = `Answer: ${correct}`;
     }
 
     setTimeout(() => {
-        feedback.style.display = 'none';
-        btns.forEach(b => b.disabled = false);
-
-        if (isMonsterQuiz) {
-            if (isCorrect) {
-                monsterCombo++;
-                document.getElementById('monster-combo').innerText = `連續正確: ${monsterCombo} / 3`;
-                if (monsterCombo >= 3) {
-                    isMonsterQuiz = false;
-                    document.getElementById('quiz-overlay').style.display = 'none';
-                    monster.cooldownUntil = Date.now() + 10000;
-                    showMessage("怪物被擊退！爭取到 10 秒時間", "var(--success)");
-                } else { nextFn(); }
-            } else {
-                monsterCombo = 0; 
-                document.getElementById('monster-combo').innerText = `連續正確: 0 / 3`;
-                nextFn(); 
-            }
+        fb.style.display = 'none';
+        if(isMonsterActive) {
+            if(choice === correct) {
+                monsterCombo++; document.getElementById('monster-combo').innerText = `連續正確: ${monsterCombo}/3`;
+                if(monsterCombo >= 3) {
+                    isMonsterActive = false; document.getElementById('quiz-overlay').style.display = 'none';
+                    monster.cooldown = Date.now() + 10000; showMessage("成功逃脫！", "var(--success)");
+                } else nextQuestion();
+            } else { monsterCombo = 0; document.getElementById('monster-combo').innerText = `連續正確: 0/3`; nextQuestion(); }
         } else {
-            if (isCorrect) {
-                hitWall(wy, wx);
-                document.getElementById('quiz-overlay').style.display = 'none';
-                showMessage("攻擊成功！牆壁受損", "var(--warning)");
-            } else {
-                document.getElementById('quiz-overlay').style.display = 'none';
-                showMessage("攻擊無效...", "#aaa");
-            }
+            if(choice === correct) {
+                netHitWall(wy, wx); document.getElementById('quiz-overlay').style.display = 'none';
+                showMessage("防火牆受損！", "var(--primary)");
+            } else { document.getElementById('quiz-overlay').style.display = 'none'; showMessage("破解失敗...", "var(--danger)"); }
         }
-    }, 1500); 
+    }, 1500);
 }
 
-window.addEventListener('keydown', e => { if(e.key) keys[e.key.toLowerCase()] = true; });
-window.addEventListener('keyup', e => { if(e.key) keys[e.key.toLowerCase()] = false; });
-initSystem();
+function showMessage(msg, color) {
+    const b = document.getElementById('message-box');
+    b.innerText = msg; b.style.borderColor = color; b.style.display = 'block';
+    setTimeout(()=>b.style.display='none', 2000);
+}
+
+function triggerJumpscare() {
+    const j = document.getElementById('jumpscare');
+    j.style.display = 'flex'; setTimeout(()=>j.style.display='none', 800);
+}
+
+function win() {
+    isGameOver = true; playAudio('win');
+    document.getElementById('win-screen').style.display = 'flex';
+    document.getElementById('final-score').innerText = player.score;
+    document.getElementById('final-team-score').innerText = player.totalSolved;
+}
+
+function setupControls() {
+    window.addEventListener('keydown', e => { if(e.key) keys[e.key.toLowerCase()] = true; if(e.code==='Space') { keys[' ']=true; e.preventDefault(); }});
+    window.addEventListener('keyup', e => { if(e.key) keys[e.key.toLowerCase()] = false; if(e.code==='Space') keys[' ']=false; });
+    const touchBind = (id, k) => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', (e)=>{e.preventDefault(); keys[k]=true});
+        el.addEventListener('touchend', (e)=>{e.preventDefault(); keys[k]=false});
+    };
+    touchBind('btn-up', 'arrowup'); touchBind('btn-down', 'arrowdown');
+    touchBind('btn-left', 'arrowleft'); touchBind('btn-right', 'arrowright');
+    document.getElementById('canvas').addEventListener('touchstart', () => {
+        if(document.getElementById('wall-hp-bar').style.display === 'block') { keys[' ']=true; setTimeout(()=>keys[' ']=false, 100); }
+    });
+}
 </script>
 </body>
 </html>
