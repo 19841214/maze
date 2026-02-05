@@ -3,108 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vocab Quest 3D - 完全體</title>
+    <title>Vocab Quest 3D - Clean</title>
     <style>
         :root {
-            --primary: #00f3ff;
-            --secondary: #bc13fe;
-            --danger: #ff2a6d;
-            --success: #05f874;
-            --warning: #fdcb6e;
-            --bg: #050510;
-            --panel-bg: rgba(15, 20, 35, 0.9);
+            /* 清爽配色系統 */
+            --primary: #4a90e2;   /* 舒適藍 */
+            --accent: #f5a623;    /* 活力橘 (任務牆) */
+            --danger: #e74c3c;    /* 警示紅 */
+            --success: #2ecc71;   /* 成功綠 */
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --panel: rgba(0, 0, 0, 0.85);
         }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
+        body { margin: 0; background: #111; color: var(--light); font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
         canvas { display: block; }
 
-        /* HUD */
+        /* HUD - 極簡風格 */
         #hud {
             position: absolute; top: 20px; left: 20px; z-index: 10;
-            background: var(--panel-bg); padding: 20px; border-radius: 12px;
-            border: 1px solid var(--primary); backdrop-filter: blur(10px);
-            pointer-events: none; width: 260px; box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            background: var(--panel); padding: 15px 20px; border-radius: 8px;
+            pointer-events: none; width: 240px; border-left: 4px solid var(--primary);
             display: none;
         }
-        #hud h1 { margin: 0; font-size: 22px; letter-spacing: 2px; color: var(--primary); text-shadow: 0 0 10px var(--primary); }
-        #hud p { margin: 8px 0 0; font-size: 13px; color: #ccc; }
-        .progress-bar { width: 100%; height: 6px; background: #333; margin-top: 5px; border-radius: 3px; overflow: hidden; }
-        #progress-fill { width: 0%; height: 100%; background: var(--success); box-shadow: 0 0 10px var(--success); transition: width 0.3s; }
+        #hud h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 1px; color: var(--primary); }
+        #hud p { margin: 5px 0 0; font-size: 13px; color: #bbb; }
+        
+        .progress-bar { width: 100%; height: 6px; background: #444; margin-top: 8px; border-radius: 3px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: var(--success); transition: width 0.3s; }
 
-        /* Lobby */
+        /* Login / Lobby - 現代平面化 */
         #login-overlay {
-            position: fixed; inset: 0; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); z-index: 20000;
+            position: fixed; inset: 0; background: #1a252f; z-index: 20000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .login-box {
-            background: rgba(20, 20, 35, 0.9); padding: 40px; border-radius: 16px; border: 1px solid var(--primary);
-            width: 90%; max-width: 450px; text-align: center; box-shadow: 0 0 50px rgba(0, 243, 255, 0.15);
-            animation: fadeIn 0.5s ease-out;
+            background: #2c3e50; padding: 40px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        .login-title { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 30px; letter-spacing: 2px; text-shadow: 2px 2px 0 var(--secondary); }
+        .login-title { font-size: 28px; font-weight: bold; color: var(--light); margin-bottom: 30px; }
         .login-input {
-            width: 100%; padding: 15px; border-radius: 8px; border: 1px solid #444; background: #0a0a12;
-            color: white; font-size: 18px; outline: none; box-sizing: border-box; transition: 0.3s; margin-bottom: 20px;
+            width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #555; background: #34495e;
+            color: white; font-size: 16px; outline: none; box-sizing: border-box; margin-bottom: 15px; text-align: center;
         }
-        .login-input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 243, 255, 0.3); }
+        .login-input:focus { border-color: var(--primary); background: #3d566e; }
         
         .btn {
-            width: 100%; padding: 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;
-            font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; margin-bottom: 10px;
+            width: 100%; padding: 14px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
+            font-weight: bold; transition: 0.2s; margin-bottom: 10px; color: white;
         }
-        .btn-create { background: var(--primary); color: #000; box-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
-        .btn-join { background: transparent; border: 1px solid #fff; color: #fff; }
-        .btn-single { background: var(--secondary); color: #fff; margin-bottom: 20px; box-shadow: 0 0 20px rgba(188, 19, 254, 0.4); }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.2); }
+        .btn-create { background: var(--primary); }
+        .btn-create:hover { background: #357abd; }
+        .btn-join { background: #555; }
+        .btn-join:hover { background: #666; }
+        .btn-single { background: var(--accent); color: #fff; margin-bottom: 20px; }
+        .btn-single:hover { background: #d48d1b; }
 
-        .divider { display: flex; align-items: center; color: #555; font-size: 12px; margin: 15px 0; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #333; }
-        
-        /* Quiz */
+        .divider { display: flex; align-items: center; color: #7f8c8d; font-size: 12px; margin: 20px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #7f8c8d; }
+        .divider span { padding: 0 10px; }
+
+        /* Quiz UI - 清晰易讀 */
         #quiz-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: none;
-            align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px);
+            position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none;
+            align-items: center; justify-content: center; z-index: 1000;
         }
         .quiz-card {
-            background: #111; width: 90%; max-width: 600px; padding: 40px; border-radius: 16px;
-            border: 2px solid var(--primary); text-align: center; position: relative;
-            box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+            background: #ecf0f1; color: #2c3e50; width: 90%; max-width: 550px; padding: 30px; border-radius: 12px;
+            text-align: center; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
-        .monster-mode { border-color: var(--danger) !important; box-shadow: 0 0 60px var(--danger) !important; }
-        .question { font-size: 24px; margin-bottom: 30px; line-height: 1.4; color: #fff; }
+        .monster-mode { border: 4px solid var(--danger); background: #ffebeb; }
+        .question { font-size: 22px; font-weight: bold; margin-bottom: 25px; line-height: 1.4; color: #2c3e50; }
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .opt-btn {
-            padding: 15px; background: rgba(255,255,255,0.05); border: 1px solid #333; color: #fff;
-            cursor: pointer; border-radius: 8px; font-size: 16px; transition: 0.2s;
+            padding: 15px; background: white; border: 2px solid #bdc3c7; color: #2c3e50;
+            cursor: pointer; border-radius: 8px; font-size: 16px; transition: 0.2s; font-weight: 600;
         }
-        .opt-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
-
-        /* Jumpscare */
+        .opt-btn:hover { border-color: var(--primary); background: #f0f8ff; transform: translateY(-2px); }
+        
+        /* Feedback */
+        #feedback-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; color: white; }
+        #feedback-icon { font-size: 80px; margin-bottom: 20px; animation: popIn 0.3s; }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        
+        /* Jumpscare & Misc */
         #jumpscare { position: fixed; inset: 0; z-index: 30000; background: #000; display: none; align-items: center; justify-content: center; }
         #jumpscare img { width: 100%; height: 100%; object-fit: contain; animation: shake 0.1s infinite; }
         @keyframes shake { 0% { transform: translate(0,0) rotate(0deg); } 25% { transform: translate(5px,5px) rotate(2deg); } 75% { transform: translate(-5px,-5px) rotate(-2deg); } }
 
-        /* Feedback */
-        #feedback-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; }
-        #feedback-icon { font-size: 80px; margin-bottom: 20px; animation: popIn 0.3s; }
-        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        #monster-status { position: absolute; top: 20px; right: 20px; padding: 8px 15px; background: rgba(0,0,0,0.8); border-left: 4px solid var(--danger); color: white; border-radius: 4px; font-weight: bold; display: none; }
         
+        #wall-hp-bar { width: 150px; height: 10px; background: #333; margin-top: 15px; display: none; border-radius: 5px; overflow: hidden; }
+        #wall-hp-fill { width: 0%; height: 100%; background: var(--accent); transition: width 0.1s; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+        
+        #message-box { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); padding: 12px 30px; border-radius: 50px; background: rgba(0,0,0,0.8); color: white; font-weight: bold; display: none; z-index: 100; }
+        
+        #loading { position: fixed; inset: 0; background: #1a252f; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        
+        /* Win Screen */
+        #win-screen { position: fixed; inset: 0; background: rgba(44, 62, 80, 0.98); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; }
+        .win-title { font-size: 50px; color: var(--success); margin-bottom: 20px; font-weight: 800; }
+        .win-card { background: rgba(0,0,0,0.2); padding: 30px; width: 90%; max-width: 400px; border-radius: 12px; }
+
         /* Mobile Controls */
         #mobile-controls { position: absolute; bottom: 30px; right: 30px; display: none; flex-direction: column; gap: 10px; align-items: center; z-index: 50; }
         .dpad-row { display: flex; gap: 15px; }
-        .dpad-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; backdrop-filter: blur(4px); }
-        .dpad-btn:active { background: var(--primary); color: black; }
+        .dpad-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; backdrop-filter: blur(4px); -webkit-tap-highlight-color: transparent; }
+        .dpad-btn:active { background: var(--primary); }
         @media (max-width: 1024px) { #mobile-controls { display: flex; } }
-
-        /* Misc */
-        #monster-status { position: absolute; top: 20px; right: 20px; padding: 8px 15px; background: rgba(0,0,0,0.8); border: 1px solid var(--danger); color: var(--danger); border-radius: 20px; font-weight: bold; display: none; }
-        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-        #wall-hp-bar { width: 120px; height: 10px; background: #222; border: 1px solid #fff; margin-top: 15px; display: none; box-shadow: 0 0 10px var(--warning); }
-        #wall-hp-fill { width: 0%; height: 100%; background: var(--warning); transition: width 0.1s; }
-        #message-box { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); padding: 15px 35px; border-radius: 100px; background: var(--panel-bg); border: 1px solid var(--primary); font-weight: bold; display: none; z-index: 100; backdrop-filter: blur(8px); }
-        
-        #loading { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--primary); }
-        #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .win-title { font-size: 60px; color: var(--success); text-shadow: 0 0 30px var(--success); margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -114,17 +120,17 @@
 
 <div id="loading">
     <div class="spinner"></div>
-    <p style="margin-top:20px; font-size:14px; opacity:0.7;">INITIALIZING AUDIO SYSTEMS...</p>
+    <p style="margin-top:20px; font-size:14px; opacity:0.7;">LOADING RESOURCES...</p>
 </div>
 
 <div id="login-overlay" style="display: none;">
     <div class="login-box">
-        <div class="login-title">VOCAB QUEST <span style="font-size:14px; vertical-align: middle; background: var(--primary); color:black; padding:2px 5px; border-radius:4px;">PRO</span></div>
-        <button class="btn btn-single" onclick="startSinglePlayer()">👤 單人挑戰 (SOLO)</button>
-        <div class="divider"><span>OR MULTIPLAYER</span></div>
-        <input type="text" id="player-name-input" class="login-input" placeholder="輸入名字 (NAME)" maxlength="10">
+        <div class="login-title">VOCAB QUEST 3D</div>
+        <button class="btn btn-single" onclick="startSinglePlayer()">👤 單人練習 (Solo)</button>
+        <div class="divider"><span>多人連線模式</span></div>
+        <input type="text" id="player-name-input" class="login-input" placeholder="輸入名字 (Name)" maxlength="10">
         <div style="display: flex; gap: 10px;">
-            <button class="btn btn-create" onclick="createRoom()">✚ 建房</button>
+            <button class="btn btn-create" onclick="createRoom()">建立房間</button>
             <input type="text" id="room-code-input" class="login-input" placeholder="代碼" style="text-transform:uppercase; text-align:center; height:100%; margin:0; width:80px;">
             <button class="btn btn-join" style="width: auto;" onclick="joinRoom()">加入</button>
         </div>
@@ -132,46 +138,53 @@
 </div>
 
 <div id="hud">
-    <h1><span style="color:white;">ROOM:</span> <span id="room-id-display">SOLO</span></h1>
-    <p id="player-count">● 單人模式</p>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1 style="margin:0;">ROOM: <span id="room-id-display" style="color:white;">SOLO</span></h1>
+        <span style="font-size:12px; background:var(--primary); color:white; padding:2px 6px; border-radius:4px;" id="player-count">1P</span>
+    </div>
     <div class="progress-container">
-        <p id="stats">團隊分數: 0</p>
+        <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:10px;">
+            <span>團隊進度</span>
+            <span id="stats">0 / 50</span>
+        </div>
         <div class="progress-bar"><div id="progress-fill"></div></div>
     </div>
-    <p id="goal-info" style="color: var(--warning); margin-top: 10px; font-size: 12px;">◈ 累積 50 分開啟傳送門</p>
+    <p id="goal-info" style="color: var(--accent); margin-top: 8px; font-size: 11px;">★ 累積 50 分開啟傳送門</p>
 </div>
 
-<div id="monster-status">😈 怪物重生中: <span id="cooldown-timer">10</span>s</div>
+<div id="monster-status">⚠ 怪物重生中: <span id="cooldown-timer">10</span>s</div>
 
 <div id="crosshair">
-    <div style="width: 4px; height: 4px; background: #00f3ff; box-shadow: 0 0 5px #00f3ff; border-radius: 50%;"></div>
+    <div style="width: 6px; height: 6px; background: white; border-radius: 50%; opacity: 0.8;"></div>
     <div id="wall-hp-bar"><div id="wall-hp-fill"></div></div>
-    <div id="wall-hp-text" style="margin-top:5px; font-weight:bold; font-size:14px; text-shadow:1px 1px 0 #000; display:none; color:var(--warning);"></div>
+    <div id="wall-hp-text" style="margin-top:5px; font-weight:bold; font-size:14px; text-shadow:1px 1px 0 rgba(0,0,0,0.5); display:none; color:var(--accent);"></div>
 </div>
 
 <div id="quiz-overlay">
     <div class="quiz-card" id="quiz-card">
         <div id="quiz-msg" style="color: var(--danger); font-weight: bold; margin-bottom: 20px;">[ SYSTEM LOCKED ]</div>
-        <div id="monster-combo" style="display:none; color:var(--warning); margin-bottom:15px; font-size:18px;">連續正確: 0/3</div>
+        <div id="monster-combo" style="display:none; color:var(--danger); margin-bottom:15px; font-weight:bold;">逃脫進度: 0/3</div>
         <div class="question" id="q-text">Loading...</div>
         <div class="options-grid" id="q-options"></div>
         <div id="feedback-overlay">
-            <div id="feedback-icon">⭕</div>
-            <div id="feedback-text">CORRECT</div>
-            <div id="feedback-sub"></div>
+            <div id="feedback-icon"></div>
+            <div id="feedback-text"></div>
+            <div id="feedback-sub" style="margin-top:10px; font-size:16px;"></div>
         </div>
     </div>
 </div>
 
 <div id="win-screen">
-    <div class="win-title">VICTORY</div>
-    <div style="background:rgba(255,255,255,0.1); padding:30px; border-radius:15px; border:1px solid var(--success);">
-        <p style="font-size:20px; margin-bottom:20px;">恭喜全體逃脫成功！</p>
-        <div style="display:flex; justify-content:space-between; width:250px; font-size:18px;">
-            <span>個人得分:</span> <span id="final-score" style="color:var(--success)">0</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; width:250px; font-size:18px; margin-top:10px;">
-            <span>團隊總分:</span> <span id="final-team-score">0</span>
+    <div class="win-title">VICTORY!</div>
+    <div class="win-card">
+        <p style="font-size: 18px; color: #ecf0f1; margin-bottom:20px;">任務完成！全體安全逃脫。</p>
+        <div style="border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.2); padding: 15px 0;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <span>個人得分:</span> <span id="final-score" style="color:var(--success); font-weight:bold;">0</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+                <span>團隊總分:</span> <span id="final-team-score" style="font-weight:bold;">0</span>
+            </div>
         </div>
         <button class="btn btn-create" style="margin-top:30px;" onclick="location.reload()">回到大廳</button>
     </div>
@@ -210,9 +223,7 @@ const AUDIO_URLS = {
 };
 
 const sounds = {};
-let audioCtxInited = false;
 
-// --- AUDIO SYSTEM ---
 function initAudio() {
     for (let key in AUDIO_URLS) {
         const a = new Audio(AUDIO_URLS[key]);
@@ -220,24 +231,19 @@ function initAudio() {
         a.volume = 0.5;
         sounds[key] = a;
     }
-    sounds.monsterApproach.volume = 0; // Starts silent
+    sounds.monsterApproach.volume = 0; 
     sounds.wallHum.volume = 0;
-    sounds.bgm.volume = 0.3;
+    sounds.bgm.volume = 0.2;
 }
 
 function playAudio(key, restart = true) {
     if(!sounds[key]) return;
     if(restart) sounds[key].currentTime = 0;
-    sounds[key].play().catch(e=>{});
+    const promise = sounds[key].play();
+    if(promise) promise.catch(e => {});
 }
 
-function stopAudio(key) {
-    if(!sounds[key]) return;
-    sounds[key].pause();
-    sounds[key].currentTime = 0;
-}
-
-// Firebase & Config
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCOI2MloQp3rLf2T90vxep9b4zwKsUWEIs",
   authDomain: "workshop-test-98617.firebaseapp.com",
@@ -269,7 +275,6 @@ const keys = {};
 let isMonsterActive = false, monsterCombo = 0, isGameOver = false;
 let lastStepTime = 0;
 
-// Map (15x15)
 const worldMap = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,2,0,2,0,0,0,2,0,0,2,0,3,1],
@@ -289,7 +294,7 @@ const worldMap = [
 ];
 
 window.onload = async () => {
-    initAudio(); // Load Audio Objects
+    initAudio();
     try {
         const t = await (await fetch(SHEET_URL)).text();
         questionBank = parseCSV(t);
@@ -315,7 +320,6 @@ function parseCSV(text) {
     }).filter(x=>x);
 }
 
-// Menu
 window.startSinglePlayer = () => { playAudio('click'); isOffline=true; player.name="Solo"; startGame(); };
 window.createRoom = async () => {
     playAudio('click');
@@ -345,16 +349,16 @@ function joinGameLogic() {
 function startGame() {
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('hud').style.display = 'block';
-    // Random Spawn
+    
+    // Spawn
     const spots = [];
     for(let y=1; y<14; y++) for(let x=1; x<14; x++) if(worldMap[y][x]===0 && (x<10||y<10)) spots.push({x:x+0.5, y:y+0.5});
     const s = spots[Math.floor(Math.random()*spots.length)];
     player.x = s.x; player.y = s.y;
     setupControls();
     
-    // Start Ambience
     playAudio('bgm');
-    sounds.monsterApproach.play(); // Start looping but volume is 0
+    sounds.monsterApproach.play();
     sounds.wallHum.play();
     
     requestAnimationFrame(gameLoop);
@@ -368,7 +372,7 @@ function setupNet() {
             if(c.type === "removed") delete otherPlayers[c.doc.id];
             else otherPlayers[c.doc.id] = c.doc.data();
         });
-        document.getElementById('player-count').innerText = `● 線上: ${Object.keys(otherPlayers).length + 1}`;
+        document.getElementById('player-count').innerText = `● ${Object.keys(otherPlayers).length + 1}P`;
     });
     onSnapshot(doc(db, 'artifacts', currentRoom, 'public', 'data', 'worldState', 'global'), snap => {
         if(snap.exists()) {
@@ -407,9 +411,9 @@ async function netHitWall(y, x) {
 
 function updateHUD() {
     const max = 50; const pct = Math.min(100, (player.totalSolved/max)*100);
-    document.getElementById('stats').innerText = `團隊分數: ${player.totalSolved}`;
+    document.getElementById('stats').innerText = `${player.totalSolved} / 50`;
     document.getElementById('progress-fill').style.width = `${pct}%`;
-    if(pct>=100) document.getElementById('goal-info').style.color = "var(--success)";
+    if(pct>=100) document.getElementById('goal-info').style.color = "#2ecc71";
 }
 
 const cvs = document.getElementById('canvas');
@@ -434,10 +438,8 @@ function update() {
     if(up) player.v = 0.07; else if(down) player.v = -0.05; else player.v *= 0.8;
     if(left) player.w = -0.04; else if(right) player.w = 0.04; else player.w *= 0.7;
     
-    // Footsteps
     if((Math.abs(player.v) > 0.01) && Date.now() - lastStepTime > 500) {
-        playAudio('footstep');
-        lastStepTime = Date.now();
+        playAudio('footstep'); lastStepTime = Date.now();
     }
 
     player.dir += player.w;
@@ -453,7 +455,7 @@ function update() {
         }
         if(cell === 3) {
             if(player.totalSolved >= 50) win();
-            else { showMessage("需要 50 分！", "var(--warning)"); player.v = -0.2; return true; }
+            else { showMessage("需要 50 分！", "#f5a623"); player.v = -0.2; return true; }
         }
         return false;
     };
@@ -461,7 +463,6 @@ function update() {
     if(!checkWall(nx, player.y)) player.x = nx;
     if(!checkWall(player.x, ny)) player.y = ny;
 
-    // Monster AI & Audio
     if(monster.cooldown > Date.now()) {
         document.getElementById('monster-status').style.display = 'block';
         document.getElementById('cooldown-timer').innerText = Math.ceil((monster.cooldown - Date.now())/1000);
@@ -471,20 +472,13 @@ function update() {
     } else {
         document.getElementById('monster-status').style.display = 'none';
         if(monster.x > 100) { monster.x = 13.5; monster.y = 13.5; }
-        
         const dx = player.x - monster.x, dy = player.y - monster.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
         
-        // Monster Audio Logic
-        if(dist < 8) {
-            const vol = 1 - (dist / 8);
-            sounds.monsterApproach.volume = Math.max(0, Math.min(1, vol));
-        } else {
-            sounds.monsterApproach.volume = 0;
-        }
+        if(dist < 8) sounds.monsterApproach.volume = Math.max(0, Math.min(1, 1 - (dist/8)));
+        else sounds.monsterApproach.volume = 0;
         
-        if(dist < 2.5) playAudio('breathing', false); // Start breathing if close
-        else sounds.breathing.pause();
+        if(dist < 2.5) playAudio('breathing', false); else sounds.breathing.pause();
 
         if(dist < 0.6) {
             playAudio('jumpscare');
@@ -495,7 +489,6 @@ function update() {
         monster.y += (dy/dist) * monster.speed;
     }
 
-    // Wall Hum Audio
     const rayD = 1.5;
     const fx = Math.floor(player.x + Math.cos(player.dir)*rayD);
     const fy = Math.floor(player.y + Math.sin(player.dir)*rayD);
@@ -506,7 +499,7 @@ function update() {
         document.getElementById('wall-hp-bar').style.display = 'block';
         document.getElementById('wall-hp-text').style.display = 'block';
         document.getElementById('wall-hp-fill').style.width = `${((WALL_HP-(wallHits[`${fy},${fx}`]||0))/WALL_HP)*100}%`;
-        document.getElementById('wall-hp-text').innerText = `WALL HP: ${WALL_HP-(wallHits[`${fy},${fx}`]||0)}/${WALL_HP}`;
+        document.getElementById('wall-hp-text').innerText = `WALL HP: ${WALL_HP-(wallHits[`${fy},${fx}`]||0)}`;
         if(keys[' ']) { keys[' '] = false; startQuiz(fx, fy); }
     } else {
         sounds.wallHum.volume = 0;
@@ -518,10 +511,15 @@ function update() {
 function render() {
     cvs.width = window.innerWidth; cvs.height = window.innerHeight;
     const w = cvs.width, h = cvs.height;
-    const sky = ctx.createLinearGradient(0,0,0,h/2); sky.addColorStop(0, '#000'); sky.addColorStop(1, '#112');
+    
+    // Clean Sky (Dark Blue Gradient)
+    const sky = ctx.createLinearGradient(0,0,0,h/2); 
+    sky.addColorStop(0, '#0a1018'); sky.addColorStop(1, '#1c2833');
     ctx.fillStyle = sky; ctx.fillRect(0,0,w,h/2);
-    ctx.fillStyle = '#fff'; for(let i=0; i<30; i++) ctx.fillRect(Math.random()*w, Math.random()*h/2, 1, 1);
-    const floor = ctx.createLinearGradient(0,h/2,0,h); floor.addColorStop(0, '#1a1a2e'); floor.addColorStop(1, '#000');
+    
+    // Clean Floor (Dark Grey)
+    const floor = ctx.createLinearGradient(0,h/2,0,h); 
+    floor.addColorStop(0, '#2c3e50'); floor.addColorStop(1, '#111');
     ctx.fillStyle = floor; ctx.fillRect(0,h/2,w,h/2);
 
     const zBuffer = new Array(w);
@@ -543,19 +541,19 @@ function render() {
         dist *= Math.cos(rayA - player.dir);
         const wh = h / dist;
         zBuffer[i] = dist;
-        if(hit === 1) {
-            const shade = Math.max(0, 150 - dist*10);
-            ctx.fillStyle = `rgb(0, 0, ${shade})`; ctx.fillRect(i, (h-wh)/2, 1, wh);
-            ctx.fillStyle = '#00f3ff'; ctx.fillRect(i, (h-wh)/2, 1, 2); ctx.fillRect(i, (h+wh)/2 - 2, 1, 2);
-        } else if(hit === 2) {
-            const shade = Math.max(20, 60 - dist*5);
-            ctx.fillStyle = `hsl(15, 100%, ${shade}%)`; ctx.fillRect(i, (h-wh)/2, 1, wh);
-            if (i % 4 === 0) { ctx.fillStyle = `rgba(255, 100, 0, 0.5)`; ctx.fillRect(i, (h-wh)/2, 1, wh); }
-        } else if(hit === 3) {
-            ctx.fillStyle = `hsl(140, 100%, ${Math.max(10, 50-dist*3)}%)`; ctx.fillRect(i, (h-wh)/2, 1, wh);
+        
+        if(hit === 1) { // Standard Wall (Clean Grey)
+            const shade = Math.max(30, 180 - dist*10);
+            ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`; ctx.fillRect(i, (h-wh)/2, 1, wh);
+        } else if(hit === 2) { // Task Wall (Amber)
+            const shade = Math.max(40, 100 - dist*5);
+            ctx.fillStyle = `hsl(36, 100%, ${shade}%)`; ctx.fillRect(i, (h-wh)/2, 1, wh);
+        } else if(hit === 3) { // Goal (Green)
+            ctx.fillStyle = `hsl(145, 80%, ${Math.max(20, 60-dist*3)}%)`; ctx.fillRect(i, (h-wh)/2, 1, wh);
         }
     }
 
+    // Sprites
     const sprites = [{x:monster.x, y:monster.y, type:'mob'}];
     Object.values(otherPlayers).forEach(p => sprites.push({...p, type:'player'}));
     sprites.sort((a,b) => ((player.x-b.x)**2+(player.y-b.y)**2) - ((player.x-a.x)**2+(player.y-a.y)**2));
@@ -571,7 +569,7 @@ function render() {
             if(dist < (zBuffer[Math.floor(sx)] || Infinity)) {
                 if(s.type === 'mob') { try { ctx.drawImage(MONSTER_IMG, sx-size/2, (h-size)/2, size, size); } catch(e) { ctx.fillStyle = 'red'; ctx.fillRect(sx-size/4, (h-size)/2, size/2, size); } } 
                 else { 
-                    ctx.fillStyle = '#00f3ff'; ctx.fillRect(sx-size/6, h/2, size/3, size/2);
+                    ctx.fillStyle = '#3498db'; ctx.fillRect(sx-size/6, h/2, size/3, size/2);
                     ctx.fillStyle = '#fff'; ctx.font = '12px Arial'; ctx.textAlign = 'center'; ctx.fillText(s.name||'?', sx, h/2 - 10);
                 }
             }
@@ -585,10 +583,10 @@ function startQuiz(wx, wy) {
     const card = document.getElementById('quiz-card');
     const msg = document.getElementById('quiz-msg');
     if(isMonsterActive) {
-        card.classList.add('monster-mode'); msg.innerText = "💀 緊急迴避 (EVASION)";
+        card.classList.add('monster-mode'); msg.innerText = "💀 緊急狀況！怪物追逐中";
         document.getElementById('monster-combo').style.display = 'block';
     } else {
-        card.classList.remove('monster-mode'); msg.innerText = "⚡ 防火牆破解 (HACKING)";
+        card.classList.remove('monster-mode'); msg.innerText = "⚡ 解鎖挑戰";
         document.getElementById('monster-combo').style.display = 'none';
     }
     nextQuestion(wx, wy);
@@ -613,40 +611,41 @@ function answer(choice, correct, wx, wy) {
     const fb = document.getElementById('feedback-overlay');
     const icon = document.getElementById('feedback-icon');
     const txt = document.getElementById('feedback-text');
+    const sub = document.getElementById('feedback-sub');
     fb.style.display = 'flex';
     
     if(choice === correct) {
         playAudio('correct');
-        icon.innerText = "⭕"; txt.innerText = "CORRECT"; txt.style.color = "#05f874";
+        icon.innerText = "⭕"; txt.innerText = "答對了!"; txt.style.color = "#2ecc71"; sub.innerText = "";
         player.score += 10;
     } else {
         playAudio('wrong');
-        icon.innerText = "❌"; txt.innerText = "WRONG"; txt.style.color = "#ff2a6d";
-        document.getElementById('feedback-sub').innerText = `Answer: ${correct}`;
+        icon.innerText = "❌"; txt.innerText = "答錯了!"; txt.style.color = "#e74c3c";
+        sub.innerText = `正確答案: ${correct}`;
     }
 
     setTimeout(() => {
         fb.style.display = 'none';
         if(isMonsterActive) {
             if(choice === correct) {
-                monsterCombo++; document.getElementById('monster-combo').innerText = `連續正確: ${monsterCombo}/3`;
+                monsterCombo++; document.getElementById('monster-combo').innerText = `連續答對: ${monsterCombo}/3`;
                 if(monsterCombo >= 3) {
                     isMonsterActive = false; document.getElementById('quiz-overlay').style.display = 'none';
-                    monster.cooldown = Date.now() + 10000; showMessage("成功逃脫！", "var(--success)");
+                    monster.cooldown = Date.now() + 10000; showMessage("成功逃脫！", "#2ecc71");
                 } else nextQuestion();
-            } else { monsterCombo = 0; document.getElementById('monster-combo').innerText = `連續正確: 0/3`; nextQuestion(); }
+            } else { monsterCombo = 0; document.getElementById('monster-combo').innerText = `連續答對: 0/3`; nextQuestion(); }
         } else {
             if(choice === correct) {
                 netHitWall(wy, wx); document.getElementById('quiz-overlay').style.display = 'none';
-                showMessage("防火牆受損！", "var(--primary)");
-            } else { document.getElementById('quiz-overlay').style.display = 'none'; showMessage("破解失敗...", "var(--danger)"); }
+                showMessage("牆壁 HP -1", "#f5a623");
+            } else { document.getElementById('quiz-overlay').style.display = 'none'; showMessage("攻擊無效...", "#e74c3c"); }
         }
     }, 1500);
 }
 
 function showMessage(msg, color) {
     const b = document.getElementById('message-box');
-    b.innerText = msg; b.style.borderColor = color; b.style.display = 'block';
+    b.innerText = msg; b.style.borderColor = color; b.style.color = color; b.style.display = 'block';
     setTimeout(()=>b.style.display='none', 2000);
 }
 
