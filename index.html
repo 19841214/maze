@@ -3,114 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vocab Quest 3D - Clean</title>
+    <title>Vocab Dungeon - Teacher Edition</title>
     <style>
         :root {
-            /* 清爽配色系統 */
-            --primary: #4a90e2;   /* 舒適藍 */
-            --accent: #f5a623;    /* 活力橘 (任務牆) */
-            --danger: #e74c3c;    /* 警示紅 */
-            --success: #2ecc71;   /* 成功綠 */
-            --dark: #2c3e50;
-            --light: #ecf0f1;
-            --panel: rgba(0, 0, 0, 0.85);
+            --primary: #007bff;
+            --accent: #ff9800;
+            --danger: #ff4444;
+            --success: #00c853;
+            --bg: #f0f2f5;
+            --panel: rgba(255, 255, 255, 0.95);
         }
-        body { margin: 0; background: #111; color: var(--light); font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
+        body { margin: 0; background: var(--bg); color: #333; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; user-select: none; }
         canvas { display: block; }
 
-        /* HUD - 極簡風格 */
-        #hud {
-            position: absolute; top: 20px; left: 20px; z-index: 10;
-            background: var(--panel); padding: 15px 20px; border-radius: 8px;
-            pointer-events: none; width: 240px; border-left: 4px solid var(--primary);
-            display: none;
+        /* Start Screen & AI Panel */
+        #start-screen {
+            position: absolute; inset: 0; background: #dfe6e9; z-index: 2000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow-y: auto; /* Allow scrolling on small screens */
         }
-        #hud h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 1px; color: var(--primary); }
-        #hud p { margin: 5px 0 0; font-size: 13px; color: #bbb; }
+        .config-panel {
+            background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); text-align: center; border: 1px solid #fff;
+        }
+        .title { font-size: 32px; font-weight: 900; color: #2d3436; margin-bottom: 20px; letter-spacing: -1px; }
         
-        .progress-bar { width: 100%; height: 6px; background: #444; margin-top: 8px; border-radius: 3px; overflow: hidden; }
+        .group-box {
+            border: 2px dashed #b2bec3; padding: 15px; border-radius: 10px; margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+        .group-label { font-size: 14px; font-weight: bold; color: #636e72; margin-bottom: 10px; display: block; text-transform: uppercase; }
+        
+        .input-field {
+            width: 100%; padding: 12px; border: 1px solid #dfe6e9; border-radius: 8px; margin-bottom: 10px;
+            font-size: 16px; outline: none; box-sizing: border-box; text-align: center; background: white;
+        }
+        .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        
+        .btn-main {
+            width: 100%; padding: 15px; background: var(--primary); color: white; border: none;
+            border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,123,255,0.4); }
+        .btn-ai { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+        
+        #ai-status { font-size: 13px; color: #00b894; margin-top: 5px; min-height: 20px; }
+
+        /* HUD */
+        #hud {
+            position: absolute; top: 10px; left: 10px; z-index: 10;
+            background: var(--panel); padding: 12px 15px; border-radius: 10px;
+            pointer-events: none; width: 200px; border-left: 5px solid var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none;
+        }
+        #hud h1 { margin: 0; font-size: 18px; font-weight: 800; color: var(--primary); }
+        
+        .progress-bar { width: 100%; height: 6px; background: #e0e0e0; margin-top: 5px; border-radius: 3px; overflow: hidden; }
         #progress-fill { width: 0%; height: 100%; background: var(--success); transition: width 0.3s; }
 
-        /* Login / Lobby - 現代平面化 */
-        #login-overlay {
-            position: fixed; inset: 0; background: #1a252f; z-index: 20000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .login-box {
-            background: #2c3e50; padding: 40px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .login-title { font-size: 28px; font-weight: bold; color: var(--light); margin-bottom: 30px; }
-        .login-input {
-            width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #555; background: #34495e;
-            color: white; font-size: 16px; outline: none; box-sizing: border-box; margin-bottom: 15px; text-align: center;
-        }
-        .login-input:focus { border-color: var(--primary); background: #3d566e; }
-        
-        .btn {
-            width: 100%; padding: 14px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
-            font-weight: bold; transition: 0.2s; margin-bottom: 10px; color: white;
-        }
-        .btn-create { background: var(--primary); }
-        .btn-create:hover { background: #357abd; }
-        .btn-join { background: #555; }
-        .btn-join:hover { background: #666; }
-        .btn-single { background: var(--accent); color: #fff; margin-bottom: 20px; }
-        .btn-single:hover { background: #d48d1b; }
-
-        .divider { display: flex; align-items: center; color: #7f8c8d; font-size: 12px; margin: 20px 0; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #7f8c8d; }
-        .divider span { padding: 0 10px; }
-
-        /* Quiz UI - 清晰易讀 */
+        /* Quiz */
         #quiz-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none;
-            align-items: center; justify-content: center; z-index: 1000;
+            position: absolute; inset: 0; background: rgba(255,255,255,0.9); display: none;
+            align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px);
         }
         .quiz-card {
-            background: #ecf0f1; color: #2c3e50; width: 90%; max-width: 550px; padding: 30px; border-radius: 12px;
-            text-align: center; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            background: white; color: #333; width: 90%; max-width: 500px; padding: 30px; border-radius: 20px;
+            text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); border: 1px solid #eee;
         }
-        .monster-mode { border: 4px solid var(--danger); background: #ffebeb; }
-        .question { font-size: 22px; font-weight: bold; margin-bottom: 25px; line-height: 1.4; color: #2c3e50; }
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .monster-mode { border: 5px solid var(--danger); background: #fff5f5; }
+        .question { font-size: 22px; font-weight: 800; margin-bottom: 25px; line-height: 1.4; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .opt-btn {
-            padding: 15px; background: white; border: 2px solid #bdc3c7; color: #2c3e50;
-            cursor: pointer; border-radius: 8px; font-size: 16px; transition: 0.2s; font-weight: 600;
+            padding: 15px; background: #f1f2f6; border: 2px solid #dfe4ea; color: #2d3436;
+            cursor: pointer; border-radius: 10px; font-size: 16px; font-weight: 700; transition: 0.2s;
         }
-        .opt-btn:hover { border-color: var(--primary); background: #f0f8ff; transform: translateY(-2px); }
-        
+        .opt-btn:hover { border-color: var(--primary); background: #e3f2fd; }
+
         /* Feedback */
-        #feedback-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; color: white; }
-        #feedback-icon { font-size: 80px; margin-bottom: 20px; animation: popIn 0.3s; }
+        #feedback-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; }
+        #feedback-icon { font-size: 80px; margin-bottom: 10px; animation: popIn 0.3s; }
         @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
-        
-        /* Jumpscare & Misc */
-        #jumpscare { position: fixed; inset: 0; z-index: 30000; background: #000; display: none; align-items: center; justify-content: center; }
+
+        /* Jumpscare */
+        #jumpscare { position: fixed; inset: 0; z-index: 3000; background: #000; display: none; align-items: center; justify-content: center; }
         #jumpscare img { width: 100%; height: 100%; object-fit: contain; animation: shake 0.1s infinite; }
         @keyframes shake { 0% { transform: translate(0,0) rotate(0deg); } 25% { transform: translate(5px,5px) rotate(2deg); } 75% { transform: translate(-5px,-5px) rotate(-2deg); } }
 
-        #monster-status { position: absolute; top: 20px; right: 20px; padding: 8px 15px; background: rgba(0,0,0,0.8); border-left: 4px solid var(--danger); color: white; border-radius: 4px; font-weight: bold; display: none; }
-        
-        #wall-hp-bar { width: 150px; height: 10px; background: #333; margin-top: 15px; display: none; border-radius: 5px; overflow: hidden; }
+        /* Controls & Misc */
+        #mobile-controls { position: absolute; bottom: 20px; right: 20px; display: none; flex-direction: column; gap: 10px; align-items: center; z-index: 50; }
+        .dpad-row { display: flex; gap: 15px; }
+        .dpad-btn { width: 60px; height: 60px; background: rgba(0,0,0,0.1); border: 2px solid rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #333; font-size: 24px; -webkit-tap-highlight-color: transparent; }
+        .dpad-btn:active { background: var(--primary); color: white; }
+        @media (max-width: 1024px) { #mobile-controls { display: flex; } }
+
+        #wall-hp-bar { width: 150px; height: 8px; background: #ddd; margin-top: 10px; display: none; border-radius: 4px; overflow: hidden; border: 2px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         #wall-hp-fill { width: 0%; height: 100%; background: var(--accent); transition: width 0.1s; }
         #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
         
-        #message-box { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); padding: 12px 30px; border-radius: 50px; background: rgba(0,0,0,0.8); color: white; font-weight: bold; display: none; z-index: 100; }
+        #monster-status { position: absolute; top: 20px; right: 20px; padding: 8px 15px; background: white; border-left: 5px solid var(--danger); color: var(--danger); border-radius: 8px; font-weight: bold; display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        #message-box { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); padding: 12px 30px; border-radius: 50px; background: #333; color: white; font-weight: bold; display: none; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
-        #loading { position: fixed; inset: 0; background: #1a252f; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        
-        /* Win Screen */
-        #win-screen { position: fixed; inset: 0; background: rgba(44, 62, 80, 0.98); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; }
-        .win-title { font-size: 50px; color: var(--success); margin-bottom: 20px; font-weight: 800; }
-        .win-card { background: rgba(0,0,0,0.2); padding: 30px; width: 90%; max-width: 400px; border-radius: 12px; }
-
-        /* Mobile Controls */
-        #mobile-controls { position: absolute; bottom: 30px; right: 30px; display: none; flex-direction: column; gap: 10px; align-items: center; z-index: 50; }
-        .dpad-row { display: flex; gap: 15px; }
-        .dpad-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; backdrop-filter: blur(4px); -webkit-tap-highlight-color: transparent; }
-        .dpad-btn:active { background: var(--primary); }
-        @media (max-width: 1024px) { #mobile-controls { display: flex; } }
+        #loading { position: fixed; inset: 0; background: #f0f2f5; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #333; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -119,74 +113,60 @@
 <div id="jumpscare"><img src="https://i.postimg.cc/4xz0RmTx/1000021389-removebg-preview.png"></div>
 
 <div id="loading">
-    <div class="spinner"></div>
-    <p style="margin-top:20px; font-size:14px; opacity:0.7;">LOADING RESOURCES...</p>
+    <div style="font-size: 24px; margin-bottom: 10px;">SYSTEM INITIALIZING...</div>
+    <div style="font-size: 14px; color:#666;">載入資源中</div>
 </div>
 
-<div id="login-overlay" style="display: none;">
-    <div class="login-box">
-        <div class="login-title">VOCAB QUEST 3D</div>
-        <button class="btn btn-single" onclick="startSinglePlayer()">👤 單人練習 (Solo)</button>
-        <div class="divider"><span>多人連線模式</span></div>
-        <input type="text" id="player-name-input" class="login-input" placeholder="輸入名字 (Name)" maxlength="10">
-        <div style="display: flex; gap: 10px;">
-            <button class="btn btn-create" onclick="createRoom()">建立房間</button>
-            <input type="text" id="room-code-input" class="login-input" placeholder="代碼" style="text-transform:uppercase; text-align:center; height:100%; margin:0; width:80px;">
-            <button class="btn btn-join" style="width: auto;" onclick="joinRoom()">加入</button>
+<!-- 設定面板 -->
+<div id="start-screen" style="display: none;">
+    <div class="config-panel">
+        <div class="title">VOCAB DUNGEON</div>
+        
+        <!-- AI 專區 -->
+        <div class="group-box">
+            <span class="group-label">🤖 AI 題庫擴充 (選填)</span>
+            <input type="password" id="api-key-input" class="input-field" placeholder="貼上 Gemini API Key">
+            <input type="text" id="ai-topic" class="input-field" placeholder="輸入主題 (例: Marvel)">
+            <button class="btn-main btn-ai" id="ai-btn" onclick="generateAI()">✨ 生成 AI 題目</button>
+            <div id="ai-status">若不輸入，將使用預設 Sheet 題庫</div>
         </div>
+
+        <button class="btn-main" onclick="initGame()">🚀 開始遊戲 (Start)</button>
     </div>
 </div>
 
 <div id="hud">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1 style="margin:0;">ROOM: <span id="room-id-display" style="color:white;">SOLO</span></h1>
-        <span style="font-size:12px; background:var(--primary); color:white; padding:2px 6px; border-radius:4px;" id="player-count">1P</span>
+        <h1 style="margin:0;">單人模式</h1>
     </div>
     <div class="progress-container">
-        <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:10px;">
-            <span>團隊進度</span>
-            <span id="stats">0 / 50</span>
+        <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:5px; color:#555; font-weight:bold;">
+            <span>得分</span>
+            <span id="score">0</span>
         </div>
-        <div class="progress-bar"><div id="progress-fill"></div></div>
     </div>
-    <p id="goal-info" style="color: var(--accent); margin-top: 8px; font-size: 11px;">★ 累積 50 分開啟傳送門</p>
+    <p id="goal-info" style="color: var(--accent); margin-top: 5px; font-size: 11px; font-weight:bold;">★ 累積 50 分開啟傳送門</p>
 </div>
 
 <div id="monster-status">⚠ 怪物重生中: <span id="cooldown-timer">10</span>s</div>
 
 <div id="crosshair">
-    <div style="width: 6px; height: 6px; background: white; border-radius: 50%; opacity: 0.8;"></div>
+    <div style="width: 8px; height: 8px; background: white; border: 2px solid #333; border-radius: 50%;"></div>
     <div id="wall-hp-bar"><div id="wall-hp-fill"></div></div>
-    <div id="wall-hp-text" style="margin-top:5px; font-weight:bold; font-size:14px; text-shadow:1px 1px 0 rgba(0,0,0,0.5); display:none; color:var(--accent);"></div>
+    <div id="wall-hp-text" style="margin-top:8px; font-weight:900; font-size:16px; text-shadow:2px 2px 0 rgba(255,255,255,1); display:none; color:var(--accent);"></div>
 </div>
 
 <div id="quiz-overlay">
     <div class="quiz-card" id="quiz-card">
-        <div id="quiz-msg" style="color: var(--danger); font-weight: bold; margin-bottom: 20px;">[ SYSTEM LOCKED ]</div>
+        <div id="quiz-msg" style="color: var(--danger); font-weight: 900; margin-bottom: 20px; text-transform:uppercase;">[ 鎖定中 ]</div>
         <div id="monster-combo" style="display:none; color:var(--danger); margin-bottom:15px; font-weight:bold;">逃脫進度: 0/3</div>
         <div class="question" id="q-text">Loading...</div>
         <div class="options-grid" id="q-options"></div>
         <div id="feedback-overlay">
             <div id="feedback-icon"></div>
-            <div id="feedback-text"></div>
-            <div id="feedback-sub" style="margin-top:10px; font-size:16px;"></div>
+            <div id="feedback-text" style="font-size:24px; font-weight:bold;"></div>
+            <div id="feedback-sub" style="margin-top:10px; font-size:16px; color:#666;"></div>
         </div>
-    </div>
-</div>
-
-<div id="win-screen">
-    <div class="win-title">VICTORY!</div>
-    <div class="win-card">
-        <p style="font-size: 18px; color: #ecf0f1; margin-bottom:20px;">任務完成！全體安全逃脫。</p>
-        <div style="border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.2); padding: 15px 0;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <span>個人得分:</span> <span id="final-score" style="color:var(--success); font-weight:bold;">0</span>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-                <span>團隊總分:</span> <span id="final-team-score" style="font-weight:bold;">0</span>
-            </div>
-        </div>
-        <button class="btn btn-create" style="margin-top:30px;" onclick="location.reload()">回到大廳</button>
     </div>
 </div>
 
@@ -203,151 +183,138 @@
 
 <canvas id="canvas"></canvas>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script>
+// --- Config ---
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUrIh3_ELuEAFnI6VRdWWI8AnmkJKh_bplW5PTw3PgQHAyyhXgUZokKOLC0eRcBv9T-XEPti1OlEHI/pub?gid=0&single=true&output=csv";
+const MONSTER_IMG = new Image(); 
+MONSTER_IMG.src = "https://i.postimg.cc/4xz0RmTx/1000021389-removebg-preview.png";
+const AI_MODEL = "gemini-2.5-flash-preview-09-2025";
 
-// --- AUDIO CONFIG ---
-const AUDIO_URLS = {
+const AUDIO_SRC = {
     bgm: "https://cdn.pixabay.com/download/audio/2025/12/18/audio_5bf582b607.mp3?filename=delosound-dark-synthwave-retro-80s-453292.mp3",
-    monsterApproach: "https://cdn.pixabay.com/download/audio/2025/12/12/audio_fe53812a72.mp3?filename=icezeke-down-low-448162.mp3",
-    win: "https://cdn.pixabay.com/download/audio/2024/12/08/audio_9e007c7afb.mp3?filename=huynhhoa89-motivational-professional-success-273811.mp3",
-    click: "https://cdn.pixabay.com/download/audio/2024/08/07/audio_d2d4fd86a1.mp3?filename=rescopicsound-ui-click-menu-modern-interface-select-medium-230477.mp3",
+    breath: "https://cdn.pixabay.com/download/audio/2024/10/04/audio_45f931da37.mp3?filename=hasin2004-breathing-fast-247449.mp3",
+    scream: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_3d7d0dcf69.mp3?filename=freesound_community-fuzzy-jumpscare-80560.mp3",
     correct: "https://cdn.pixabay.com/download/audio/2026/01/24/audio_d050f34e8a.mp3?filename=dragon-studio-correct-472358.mp3",
     wrong: "https://cdn.pixabay.com/download/audio/2023/04/23/audio_65f312a7c6.mp3?filename=u_ayf470ljcu-incorrect-buzzer-sound-147336.mp3",
-    wallHum: "https://cdn.pixabay.com/download/audio/2025/07/19/audio_a0dd52ab77.mp3?filename=pwlpl-force-field-hum-377269.mp3",
-    footstep: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d948e8b4ec.mp3?filename=freesound_community-metal-footsteps-14727.mp3",
-    breathing: "https://cdn.pixabay.com/download/audio/2024/10/04/audio_45f931da37.mp3?filename=hasin2004-breathing-fast-247449.mp3",
-    jumpscare: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_3d7d0dcf69.mp3?filename=freesound_community-fuzzy-jumpscare-80560.mp3"
+    footstep: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d948e8b4ec.mp3?filename=freesound_community-metal-footsteps-14727.mp3"
 };
 
 const sounds = {};
-
-function initAudio() {
-    for (let key in AUDIO_URLS) {
-        const a = new Audio(AUDIO_URLS[key]);
-        if(key === 'bgm' || key === 'wallHum' || key === 'breathing' || key === 'monsterApproach') a.loop = true;
-        a.volume = 0.5;
-        sounds[key] = a;
+function loadAudio() {
+    for (let k in AUDIO_SRC) {
+        sounds[k] = new Audio(AUDIO_SRC[k]);
+        if(k === 'bgm' || k === 'breath') sounds[k].loop = true;
     }
-    sounds.monsterApproach.volume = 0; 
-    sounds.wallHum.volume = 0;
     sounds.bgm.volume = 0.2;
+    sounds.breath.volume = 0; 
 }
 
-function playAudio(key, restart = true) {
-    if(!sounds[key]) return;
-    if(restart) sounds[key].currentTime = 0;
-    const promise = sounds[key].play();
-    if(promise) promise.catch(e => {});
-}
+// 20x20 大地圖
+// 1=藍牆, 2=紅題牆(阻擋), 3=終點, 0=路
+const worldMap = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,1,1,1,2,1,1,1,0,1,2,1,1,0,1,0,1],
+    [1,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,1],
+    [1,1,1,2,1,0,1,1,1,0,1,0,1,1,0,1,1,1,2,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,0,1,1,1,2,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,2,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1],
+    [1,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1],
+    [1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,1,1,1,0,1],
+    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,0,1,2,1,1,1,1,1,0,1,2,1,1,1,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,1,0,1],
+    [1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
 
-// Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCOI2MloQp3rLf2T90vxep9b4zwKsUWEIs",
-  authDomain: "workshop-test-98617.firebaseapp.com",
-  databaseURL: "https://workshop-test-98617-default-rtdb.firebaseio.com",
-  projectId: "workshop-test-98617",
-  storageBucket: "workshop-test-98617.firebasestorage.app",
-  messagingSenderId: "636905955796",
-  appId: "1:636905955796:web:a01740ce01d98447d4b641"
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUrIh3_ELuEAFnI6VRdWWI8AnmkJKh_bplW5PTw3PgQHAyyhXgUZokKOLC0eRcBv9T-XEPti1OlEHI/pub?gid=0&single=true&output=csv";
-const MONSTER_IMG = new Image(); MONSTER_IMG.src = "https://i.postimg.cc/4xz0RmTx/1000021389-removebg-preview.png";
-const DEFAULT_Q = [{q:"Past of Eat?",a:"Ate",b:["Eaten","Eating","Eats"]}, {q:"Adj?",a:"Big",b:["Run","Fastly","Cat"]}];
-
-let isOffline = false;
-let currentRoom = null;
-let userId = "guest-" + Math.floor(Math.random()*10000);
-let questionBank = [];
-let otherPlayers = {};
-let wallHits = {}; 
+// Game State
+const DEFAULT_Q = [{q:"Example: Past tense of 'Go'?", a:"Went", b:["Gone","Going","Goes"]}];
+let questions = [];
+let wallHits = {}; // { "y,x": hits }
 const WALL_HP = 10;
 
-const player = { x: 1.5, y: 13.5, dir: -1.57, v: 0, w: 0, score: 0, totalSolved: 0, name: "Player" };
-const monster = { x: 13.5, y: 13.5, speed: 0.012, cooldown: 0 };
+const player = { x: 1.5, y: 1.5, dir: 0, moveSpeed: 0.08, rotSpeed: 0.05, score: 0 };
+const monster = { x: 18.5, y: 18.5, speed: 0.02, active: true, cooldown: 0 };
 const keys = {};
 let isMonsterActive = false, monsterCombo = 0, isGameOver = false;
 let lastStepTime = 0;
 
-const worldMap = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,2,0,2,0,0,0,2,0,0,2,0,3,1],
-    [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
-    [1,2,0,0,0,2,0,0,0,2,0,0,0,2,1],
-    [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-    [1,2,0,0,2,0,0,2,0,0,2,0,0,2,1],
-    [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
-    [1,2,0,0,0,2,0,2,0,2,0,0,0,2,1],
-    [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-    [1,2,0,0,2,0,0,0,0,0,2,0,0,2,1],
-    [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
-    [1,2,0,0,0,2,0,2,0,2,0,0,0,2,1],
-    [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-    [1,0,0,0,2,0,0,0,0,0,2,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-];
-
-window.onload = async () => {
-    initAudio();
-    try {
-        const t = await (await fetch(SHEET_URL)).text();
-        questionBank = parseCSV(t);
-    } catch(e) { questionBank = DEFAULT_Q; }
-    try {
-        await signInAnonymously(auth);
-        onAuthStateChanged(auth, u => { if(u) userId = u.uid; });
-    } catch(e) { console.log("Offline"); }
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('login-overlay').style.display = 'flex';
-};
-
-function parseCSV(text) {
-    return text.split(/\r?\n/).slice(1).map(line => {
-        const c = []; let cur = '', inQ = false;
-        for(let ch of line) {
-            if(ch === '"') { if(inQ && line[line.indexOf(ch)+1]==='"') cur+='"'; else inQ=!inQ; }
-            else if(ch===',' && !inQ) { c.push(cur.trim()); cur=''; }
-            else cur+=ch;
-        }
-        c.push(cur.trim());
-        return c.length >= 5 ? {q:c[0], a:c[1], b:[c[2],c[3],c[4]]} : null;
-    }).filter(x=>x);
+// --- Init ---
+window.onload = function() {
+    loadQuestionsFromSheet();
+    loadAudio();
 }
 
-window.startSinglePlayer = () => { playAudio('click'); isOffline=true; player.name="Solo"; startGame(); };
-window.createRoom = async () => {
-    playAudio('click');
-    const name = document.getElementById('player-name-input').value.trim();
-    if(!name) return alert("請輸入名字");
-    currentRoom = "GAME-" + Math.floor(1000 + Math.random()*9000);
-    player.name = name;
-    if(!isOffline) try { await setDoc(doc(db, 'artifacts', currentRoom, 'public', 'data', 'worldState', 'global'), { wallHits:{}, totalSolved:0 }); } catch(e){ isOffline=true; }
-    joinGameLogic();
-};
-window.joinRoom = () => {
-    playAudio('click');
-    const name = document.getElementById('player-name-input').value.trim();
-    const code = document.getElementById('room-code-input').value.trim().toUpperCase();
-    if(!name || !code) return alert("請輸入資訊");
-    currentRoom = code; player.name = name;
-    joinGameLogic();
-};
-
-function joinGameLogic() {
-    isOffline = false;
-    document.getElementById('room-id-display').innerText = currentRoom;
-    setupNet();
-    startGame();
+function loadQuestionsFromSheet() {
+    fetch(SHEET_URL).then(r=>r.text()).then(t=>{
+        const parsed = t.split(/\r?\n/).slice(1).map(l=>{
+            const c = []; let cur='', inQ=false;
+            for(let ch of l){ if(ch==='"'){inQ=!inQ} else if(ch===','&&!inQ){c.push(cur.trim());cur=''} else cur+=ch; }
+            c.push(cur.trim());
+            return c.length>2 ? {q:c[0],a:c[1],b:[c[2],c[3],c[4]]} : null;
+        }).filter(x=>x);
+        
+        if (parsed.length > 0) questions = parsed;
+        else questions = DEFAULT_Q;
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'flex';
+    }).catch(()=>{
+        questions = DEFAULT_Q;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'flex';
+    });
 }
 
-function startGame() {
-    document.getElementById('login-overlay').style.display = 'none';
+// --- AI Generation ---
+window.generateAI = async () => {
+    const key = document.getElementById('api-key-input').value.trim();
+    const topic = document.getElementById('ai-topic').value.trim();
+    const status = document.getElementById('ai-status');
+    const btn = document.getElementById('ai-btn');
+
+    if(!key) return alert("請輸入 API Key！");
+    if(!topic) return alert("請輸入主題！");
+
+    status.innerText = "Gemini 正在思考中... (Generating)";
+    status.style.color = "orange";
+    btn.disabled = true;
+
+    const prompt = `Generate 10 multiple choice questions about "${topic}". Return raw JSON: { "questions": [{"q":"Question?", "a":"Correct", "b":["Wrong1","Wrong2","Wrong3"]}] }`;
+
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent?key=${key}`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await res.json();
+        let text = data.candidates[0].content.parts[0].text;
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const json = JSON.parse(text);
+        
+        if(json.questions && json.questions.length > 0) {
+            questions = json.questions;
+            status.innerText = `✨ 成功生成 ${questions.length} 題關於 "${topic}" 的挑戰！`;
+            status.style.color = "green";
+        } else throw new Error("Format error");
+    } catch(e) {
+        console.error(e);
+        status.innerText = "生成失敗，請檢查 Key 或網路。";
+        status.style.color = "red";
+    } finally {
+        btn.disabled = false;
+    }
+};
+
+window.initGame = () => {
+    document.getElementById('start-screen').style.display = 'none';
     document.getElementById('hud').style.display = 'block';
     
     // Spawn
@@ -355,69 +322,61 @@ function startGame() {
     for(let y=1; y<14; y++) for(let x=1; x<14; x++) if(worldMap[y][x]===0 && (x<10||y<10)) spots.push({x:x+0.5, y:y+0.5});
     const s = spots[Math.floor(Math.random()*spots.length)];
     player.x = s.x; player.y = s.y;
-    setupControls();
     
-    playAudio('bgm');
-    sounds.monsterApproach.play();
-    sounds.wallHum.play();
+    sounds.bgm.play();
+    sounds.breath.play();
     
-    requestAnimationFrame(gameLoop);
-}
+    // Controls
+    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+    setupTouchControls();
+    
+    // Resize
+    const canvas = document.getElementById('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-function setupNet() {
-    if(isOffline) return;
-    onSnapshot(collection(db, 'artifacts', currentRoom, 'public', 'data', 'players'), snap => {
-        snap.docChanges().forEach(c => {
-            if(c.doc.id === userId) return;
-            if(c.type === "removed") delete otherPlayers[c.doc.id];
-            else otherPlayers[c.doc.id] = c.doc.data();
-        });
-        document.getElementById('player-count').innerText = `● ${Object.keys(otherPlayers).length + 1}P`;
-    });
-    onSnapshot(doc(db, 'artifacts', currentRoom, 'public', 'data', 'worldState', 'global'), snap => {
-        if(snap.exists()) {
-            const d = snap.data();
-            player.totalSolved = d.totalSolved || 0;
-            wallHits = d.wallHits || {};
-            updateHUD();
-        }
-    });
-    setInterval(() => {
-        if(!currentRoom || isGameOver) return;
-        setDoc(doc(db, 'artifacts', currentRoom, 'public', 'data', 'players', userId), {
-            x: player.x, y: player.y, dir: player.dir, name: player.name, time: Date.now()
-        }, {merge:true});
-    }, 500);
-}
+    gameLoop();
+};
 
-async function netHitWall(y, x) {
-    const k = `${y},${x}`;
-    if(isOffline) {
-        wallHits[k] = (wallHits[k]||0)+1; player.totalSolved++; updateHUD();
-    } else {
-        const ref = doc(db, 'artifacts', currentRoom, 'public', 'data', 'worldState', 'global');
-        await runTransaction(db, async (t) => {
-            const doc = await t.get(ref);
-            if(!doc.exists()) t.set(ref, { wallHits: {[k]:1}, totalSolved:1 });
-            else {
-                const d = doc.data();
-                const hits = d.wallHits || {};
-                hits[k] = (hits[k]||0)+1;
-                t.update(ref, { wallHits: hits, totalSolved: (d.totalSolved||0)+1 });
+// --- Pathfinding (BFS) ---
+function findNextMove(startX, startY, targetX, targetY) {
+    const sx = Math.floor(startX), sy = Math.floor(startY);
+    const tx = Math.floor(targetX), ty = Math.floor(targetY);
+    if (sx === tx && sy === ty) return {x: tx, y: ty};
+
+    const queue = [{x: sx, y: sy, path: []}];
+    const visited = new Set();
+    visited.add(`${sx},${sy}`);
+
+    while (queue.length > 0) {
+        const curr = queue.shift();
+        if (curr.x === tx && curr.y === ty) return curr.path[0] || {x: tx, y: ty};
+
+        const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+        for (let d of dirs) {
+            const nx = curr.x + d[0], ny = curr.y + d[1];
+            const key = `${nx},${ny}`;
+            if (nx >= 0 && nx < 20 && ny >= 0 && ny < 20 && !visited.has(key)) {
+                const cell = worldMap[ny][nx];
+                // 怪物會被紅牆 (2) 擋住，除非被打破 (hp<=0)
+                const isRedWall = (cell === 2);
+                const hp = WALL_HP - (wallHits[`${ny},${nx}`]||0);
+                const isBlocked = isRedWall && hp > 0;
+
+                if (!isBlocked && cell !== 1) { // 1是硬牆
+                    visited.add(key);
+                    queue.push({x: nx, y: ny, path: [...curr.path, {x: nx, y: ny}]});
+                }
             }
-        });
+        }
     }
+    return null;
 }
 
-function updateHUD() {
-    const max = 50; const pct = Math.min(100, (player.totalSolved/max)*100);
-    document.getElementById('stats').innerText = `${player.totalSolved} / 50`;
-    document.getElementById('progress-fill').style.width = `${pct}%`;
-    if(pct>=100) document.getElementById('goal-info').style.color = "#2ecc71";
-}
-
-const cvs = document.getElementById('canvas');
-const ctx = cvs.getContext('2d', { alpha: false });
+// --- Game Loop ---
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { alpha: false });
 
 function gameLoop() {
     if(isGameOver) return;
@@ -430,31 +389,32 @@ function update() {
     if(document.getElementById('quiz-overlay').style.display === 'flex') return;
     if(document.getElementById('jumpscare').style.display === 'flex') return;
 
-    const up = keys['w'] || keys['arrowup'];
-    const down = keys['s'] || keys['arrowdown'];
-    const left = keys['a'] || keys['arrowleft'];
-    const right = keys['d'] || keys['arrowright'];
-
-    if(up) player.v = 0.07; else if(down) player.v = -0.05; else player.v *= 0.8;
-    if(left) player.w = -0.04; else if(right) player.w = 0.04; else player.w *= 0.7;
+    // Player Move
+    const move = keys['w']||keys['arrowup'] ? 1 : (keys['s']||keys['arrowdown'] ? -1 : 0);
+    const rot = keys['d']||keys['arrowright'] ? 1 : (keys['a']||keys['arrowleft'] ? -1 : 0);
     
-    if((Math.abs(player.v) > 0.01) && Date.now() - lastStepTime > 500) {
-        playAudio('footstep'); lastStepTime = Date.now();
+    player.dir += rot * player.rotSpeed;
+    const nx = player.x + Math.cos(player.dir) * move * player.moveSpeed;
+    const ny = player.y + Math.sin(player.dir) * move * player.moveSpeed;
+
+    if(move !== 0 && Date.now() - lastStepTime > 500) {
+        sounds.footstep.currentTime = 0; sounds.footstep.play(); lastStepTime = Date.now();
     }
 
-    player.dir += player.w;
-    const nx = player.x + Math.cos(player.dir)*player.v;
-    const ny = player.y + Math.sin(player.dir)*player.v;
-
+    // Collision
     const checkWall = (x, y) => {
         const cell = worldMap[Math.floor(y)]?.[Math.floor(x)];
         if(cell === 1) return true;
         if(cell === 2) {
             const hp = WALL_HP - (wallHits[`${Math.floor(y)},${Math.floor(x)}`] || 0);
-            return hp > 0;
+            if(hp > 0) {
+                // Interact range
+                triggerQuiz(Math.floor(x), Math.floor(y));
+                return true; 
+            }
         }
         if(cell === 3) {
-            if(player.totalSolved >= 50) win();
+            if(player.score >= 50) alert("WIN!");
             else { showMessage("需要 50 分！", "#f5a623"); player.v = -0.2; return true; }
         }
         return false;
@@ -463,217 +423,234 @@ function update() {
     if(!checkWall(nx, player.y)) player.x = nx;
     if(!checkWall(player.x, ny)) player.y = ny;
 
+    // Monster AI
     if(monster.cooldown > Date.now()) {
         document.getElementById('monster-status').style.display = 'block';
         document.getElementById('cooldown-timer').innerText = Math.ceil((monster.cooldown - Date.now())/1000);
         monster.x = 1000;
-        sounds.monsterApproach.volume = 0;
-        sounds.breathing.pause();
     } else {
         document.getElementById('monster-status').style.display = 'none';
-        if(monster.x > 100) { monster.x = 13.5; monster.y = 13.5; }
+        if(monster.x > 100) { monster.x = 18.5; monster.y = 18.5; } // Respawn
+        
         const dx = player.x - monster.x, dy = player.y - monster.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
         
-        if(dist < 8) sounds.monsterApproach.volume = Math.max(0, Math.min(1, 1 - (dist/8)));
-        else sounds.monsterApproach.volume = 0;
-        
-        if(dist < 2.5) playAudio('breathing', false); else sounds.breathing.pause();
+        // Audio volume by distance
+        let vol = 0; if(dist < 10) vol = 1 - (dist / 10);
+        sounds.breath.volume = Math.max(0, Math.min(1, vol));
 
         if(dist < 0.6) {
-            playAudio('jumpscare');
-            triggerJumpscare();
-            setTimeout(() => { isMonsterActive = true; monsterCombo = 0; startQuiz(); }, 1000);
+            monster.active = false;
+            sounds.scream.play();
+            document.getElementById('jumpscare').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('jumpscare').style.display = 'none';
+                monster.x = 18.5; monster.y = 18.5; monster.active = true;
+                triggerQuiz(null, null, true); // Penalty
+            }, 1500);
         }
-        monster.x += (dx/dist) * monster.speed;
-        monster.y += (dy/dist) * monster.speed;
-    }
 
-    const rayD = 1.5;
-    const fx = Math.floor(player.x + Math.cos(player.dir)*rayD);
-    const fy = Math.floor(player.y + Math.sin(player.dir)*rayD);
-    const fCell = worldMap[fy]?.[fx];
-    
-    if(fCell === 2 && (WALL_HP - (wallHits[`${fy},${fx}`]||0)) > 0) {
-        sounds.wallHum.volume = 0.6;
-        document.getElementById('wall-hp-bar').style.display = 'block';
-        document.getElementById('wall-hp-text').style.display = 'block';
-        document.getElementById('wall-hp-fill').style.width = `${((WALL_HP-(wallHits[`${fy},${fx}`]||0))/WALL_HP)*100}%`;
-        document.getElementById('wall-hp-text').innerText = `WALL HP: ${WALL_HP-(wallHits[`${fy},${fx}`]||0)}`;
-        if(keys[' ']) { keys[' '] = false; startQuiz(fx, fy); }
-    } else {
-        sounds.wallHum.volume = 0;
-        document.getElementById('wall-hp-bar').style.display = 'none';
-        document.getElementById('wall-hp-text').style.display = 'none';
-    }
-}
-
-function render() {
-    cvs.width = window.innerWidth; cvs.height = window.innerHeight;
-    const w = cvs.width, h = cvs.height;
-    
-    // Clean Sky (Dark Blue Gradient)
-    const sky = ctx.createLinearGradient(0,0,0,h/2); 
-    sky.addColorStop(0, '#0a1018'); sky.addColorStop(1, '#1c2833');
-    ctx.fillStyle = sky; ctx.fillRect(0,0,w,h/2);
-    
-    // Clean Floor (Dark Grey)
-    const floor = ctx.createLinearGradient(0,h/2,0,h); 
-    floor.addColorStop(0, '#2c3e50'); floor.addColorStop(1, '#111');
-    ctx.fillStyle = floor; ctx.fillRect(0,h/2,w,h/2);
-
-    const zBuffer = new Array(w);
-    for(let i=0; i<w; i++) {
-        const rayA = (player.dir - player.fov/2) + (i/w)*player.fov;
-        let dist = 0, hit = 0;
-        const sin = Math.sin(rayA), cos = Math.cos(rayA);
-        let rx = player.x, ry = player.y;
-        while(hit===0 && dist<16) {
-            rx += cos*0.05; ry += sin*0.05; dist += 0.05;
-            const mx = Math.floor(rx), my = Math.floor(ry);
-            const cell = worldMap[my]?.[mx];
-            if(cell === 1) hit = 1;
-            else if(cell === 2) {
-                const hp = WALL_HP - (wallHits[`${my},${mx}`]||0);
-                if(hp > 0) hit = 2;
-            } else if(cell === 3) hit = 3;
-        }
-        dist *= Math.cos(rayA - player.dir);
-        const wh = h / dist;
-        zBuffer[i] = dist;
-        
-        if(hit === 1) { // Standard Wall (Clean Grey)
-            const shade = Math.max(30, 180 - dist*10);
-            ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`; ctx.fillRect(i, (h-wh)/2, 1, wh);
-        } else if(hit === 2) { // Task Wall (Amber)
-            const shade = Math.max(40, 100 - dist*5);
-            ctx.fillStyle = `hsl(36, 100%, ${shade}%)`; ctx.fillRect(i, (h-wh)/2, 1, wh);
-        } else if(hit === 3) { // Goal (Green)
-            ctx.fillStyle = `hsl(145, 80%, ${Math.max(20, 60-dist*3)}%)`; ctx.fillRect(i, (h-wh)/2, 1, wh);
-        }
-    }
-
-    // Sprites
-    const sprites = [{x:monster.x, y:monster.y, type:'mob'}];
-    Object.values(otherPlayers).forEach(p => sprites.push({...p, type:'player'}));
-    sprites.sort((a,b) => ((player.x-b.x)**2+(player.y-b.y)**2) - ((player.x-a.x)**2+(player.y-a.y)**2));
-
-    for(let s of sprites) {
-        const dx = s.x - player.x, dy = s.y - player.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        let ang = Math.atan2(dy, dx) - player.dir;
-        while(ang < -Math.PI) ang += Math.PI*2; while(ang > Math.PI) ang -= Math.PI*2;
-        if(Math.abs(ang) < player.fov/1.5 && dist > 0.1) {
-            const sx = (0.5 * (ang/(player.fov/2)) + 0.5) * w;
-            const size = h / dist;
-            if(dist < (zBuffer[Math.floor(sx)] || Infinity)) {
-                if(s.type === 'mob') { try { ctx.drawImage(MONSTER_IMG, sx-size/2, (h-size)/2, size, size); } catch(e) { ctx.fillStyle = 'red'; ctx.fillRect(sx-size/4, (h-size)/2, size/2, size); } } 
-                else { 
-                    ctx.fillStyle = '#3498db'; ctx.fillRect(sx-size/6, h/2, size/3, size/2);
-                    ctx.fillStyle = '#fff'; ctx.font = '12px Arial'; ctx.textAlign = 'center'; ctx.fillText(s.name||'?', sx, h/2 - 10);
+        if(monster.active) {
+            const nextTile = findNextMove(monster.x, monster.y, player.x, player.y);
+            if (nextTile) {
+                const tx = nextTile.x + 0.5, ty = nextTile.y + 0.5;
+                const mdx = tx - monster.x, mdy = ty - monster.y;
+                const md = Math.sqrt(mdx*mdx + mdy*mdy);
+                if(md > 0) {
+                    monster.x += (mdx/md) * monster.speed;
+                    monster.y += (mdy/md) * monster.speed;
                 }
             }
         }
     }
 }
 
-function startQuiz(wx, wy) {
-    playAudio('click');
-    document.getElementById('quiz-overlay').style.display = 'flex';
-    const card = document.getElementById('quiz-card');
-    const msg = document.getElementById('quiz-msg');
-    if(isMonsterActive) {
-        card.classList.add('monster-mode'); msg.innerText = "💀 緊急狀況！怪物追逐中";
-        document.getElementById('monster-combo').style.display = 'block';
-    } else {
-        card.classList.remove('monster-mode'); msg.innerText = "⚡ 解鎖挑戰";
-        document.getElementById('monster-combo').style.display = 'none';
+function render() {
+    const w = canvas.width, h = canvas.height;
+    
+    // Sky/Floor
+    const sky = ctx.createLinearGradient(0,0,0,h/2); sky.addColorStop(0,'#87CEEB'); sky.addColorStop(1,'#E0F7FA');
+    ctx.fillStyle = sky; ctx.fillRect(0,0,w,h/2);
+    const floor = ctx.createLinearGradient(0,h/2,0,h); floor.addColorStop(0,'#9E9E9E'); floor.addColorStop(1,'#424242');
+    ctx.fillStyle = floor; ctx.fillRect(0,h/2,w,h/2);
+
+    const zBuffer = new Array(w).fill(0);
+
+    // DDA Raycasting
+    for(let x=0; x<w; x++) {
+        const camX = 2*x/w - 1;
+        const rayDirX = Math.cos(player.dir) + Math.cos(player.dir+1.57)*0.66*camX;
+        const rayDirY = Math.sin(player.dir) + Math.sin(player.dir+1.57)*0.66*camX;
+
+        let mapX = Math.floor(player.x), mapY = Math.floor(player.y);
+        let sideDistX, sideDistY, stepX, stepY, hit=0, side=0;
+        const deltaDistX = Math.abs(1/rayDirX), deltaDistY = Math.abs(1/rayDirY);
+
+        if(rayDirX<0){stepX=-1;sideDistX=(player.x-mapX)*deltaDistX} else{stepX=1;sideDistX=(mapX+1.0-player.x)*deltaDistX}
+        if(rayDirY<0){stepY=-1;sideDistY=(player.y-mapY)*deltaDistY} else{stepY=1;sideDistY=(mapY+1.0-player.y)*deltaDistY}
+
+        while(hit===0) {
+            if(sideDistX < sideDistY) { sideDistX+=deltaDistX; mapX+=stepX; side=0; }
+            else { sideDistY+=deltaDistY; mapY+=stepY; side=1; }
+            
+            // Bounds check
+            if(mapX<0 || mapX>=20 || mapY<0 || mapY>=20) { hit=1; break; }
+            
+            const cell = worldMap[mapY][mapX];
+            if(cell === 1) hit = 1;
+            else if(cell === 2) {
+                const hp = WALL_HP - (wallHits[`${mapY},${mapX}`]||0);
+                if(hp > 0) hit = 2;
+            } else if(cell === 3) hit = 3;
+        }
+
+        let perpDist = (side===0) ? (mapX-player.x+(1-stepX)/2)/rayDirX : (mapY-player.y+(1-stepY)/2)/rayDirY;
+        zBuffer[x] = perpDist;
+
+        const lh = Math.floor(h/perpDist);
+        const start = -lh/2 + h/2;
+        
+        let color = '#777';
+        if(hit===1) color = side===1 ? '#999' : '#aaa'; // Grey Walls
+        if(hit===2) color = '#f5a623'; // Orange
+        if(hit===3) color = '#00c853'; // Green
+
+        ctx.fillStyle = color; ctx.fillRect(x, start, 1, lh);
     }
-    nextQuestion(wx, wy);
+
+    // Sprite
+    drawSprite(w, h, zBuffer);
+    drawMinimap(w);
 }
 
-function nextQuestion(wx, wy) {
-    const q = questionBank[Math.floor(Math.random()*questionBank.length)] || DEFAULT_Q[0];
-    document.getElementById('q-text').innerText = q.q;
+function drawSprite(w, h, zBuffer) {
+    const dx = monster.x - player.x, dy = monster.y - player.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    let angle = Math.atan2(dy, dx) - player.dir;
+    while(angle < -Math.PI) angle += Math.PI*2; while(angle > Math.PI) angle -= Math.PI*2;
+
+    if(Math.abs(angle) < 1) { 
+        const size = h / dist; 
+        const sx = (0.5 * (angle / 0.66) + 0.5) * w; 
+        const bufIdx = Math.floor(Math.max(0, Math.min(w-1, sx)));
+        if (zBuffer[bufIdx] > dist) { 
+            try { ctx.drawImage(MONSTER_IMG, sx - size/2, (h-size)/2, size, size); } catch(e){}
+        }
+    }
+}
+
+function drawMinimap(w) {
+    const s = 5, p = 10;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(p, p, 20*s, 20*s);
+    ctx.strokeStyle = '#333'; ctx.strokeRect(p, p, 20*s, 20*s);
+    
+    for(let y=0; y<20; y++) {
+        for(let x=0; x<20; x++) {
+            if(worldMap[y][x]>0) {
+                if(worldMap[y][x]===1) ctx.fillStyle='#888';
+                else if(worldMap[y][x]===2) {
+                    const hp = WALL_HP - (wallHits[`${y},${x}`]||0);
+                    ctx.fillStyle = hp>0 ? '#f5a623' : 'rgba(0,0,0,0)';
+                }
+                else ctx.fillStyle='#0f0';
+                ctx.fillRect(p+x*s, p+y*s, s, s);
+            }
+        }
+    }
+    ctx.fillStyle = 'blue'; ctx.fillRect(p+player.x*s-2, p+player.y*s-2, 4, 4);
+    ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(p+monster.x*s, p+monster.y*s, 3, 0, 6); ctx.fill();
+}
+
+function triggerQuiz(x, y, isPenalty = false) {
+    const overlay = document.getElementById('quiz-overlay');
+    if(overlay.style.display === 'flex') return;
+    
+    const q = questions[Math.floor(Math.random()*questions.length)] || DEFAULT_Q[0];
+    document.getElementById('q-text').innerText = isPenalty ? `[抓到了!] ${q.q}` : q.q;
+    
     const opts = [q.a, ...q.b].sort(()=>Math.random()-0.5);
     const container = document.getElementById('q-options');
     container.innerHTML = '';
+    
+    if(isMonsterActive) {
+        document.getElementById('monster-combo').style.display = 'block';
+        document.getElementById('monster-combo').innerText = `連續: ${monsterCombo}/3`;
+        document.querySelector('.quiz-card').classList.add('monster-mode');
+    } else {
+        document.getElementById('monster-combo').style.display = 'none';
+        document.querySelector('.quiz-card').classList.remove('monster-mode');
+    }
+
     opts.forEach(o => {
         const btn = document.createElement('button');
         btn.className = 'opt-btn'; btn.innerText = o;
-        btn.onclick = () => answer(o, q.a, wx, wy);
+        btn.onclick = () => answer(o, q.a, x, y, isPenalty);
         container.appendChild(btn);
     });
+    
+    overlay.style.display = 'flex';
 }
 
-function answer(choice, correct, wx, wy) {
-    playAudio('click');
-    const fb = document.getElementById('feedback-overlay');
+function answer(choice, correct, x, y, isPenalty) {
+    const overlay = document.getElementById('quiz-overlay');
+    const feedback = document.getElementById('feedback-overlay');
     const icon = document.getElementById('feedback-icon');
     const txt = document.getElementById('feedback-text');
     const sub = document.getElementById('feedback-sub');
-    fb.style.display = 'flex';
+    
+    feedback.style.display = 'flex';
     
     if(choice === correct) {
-        playAudio('correct');
-        icon.innerText = "⭕"; txt.innerText = "答對了!"; txt.style.color = "#2ecc71"; sub.innerText = "";
-        player.score += 10;
+        sounds.correct.play();
+        icon.innerText = "⭕"; txt.innerText = "答對了"; txt.style.color = "#00c853"; sub.innerText = "";
     } else {
-        playAudio('wrong');
-        icon.innerText = "❌"; txt.innerText = "答錯了!"; txt.style.color = "#e74c3c";
-        sub.innerText = `正確答案: ${correct}`;
+        sounds.wrong.play();
+        icon.innerText = "❌"; txt.innerText = "答錯了"; txt.style.color = "#ff4444"; sub.innerText = `答案: ${correct}`;
     }
 
     setTimeout(() => {
-        fb.style.display = 'none';
+        feedback.style.display = 'none';
         if(isMonsterActive) {
             if(choice === correct) {
-                monsterCombo++; document.getElementById('monster-combo').innerText = `連續答對: ${monsterCombo}/3`;
+                monsterCombo++;
                 if(monsterCombo >= 3) {
-                    isMonsterActive = false; document.getElementById('quiz-overlay').style.display = 'none';
-                    monster.cooldown = Date.now() + 10000; showMessage("成功逃脫！", "#2ecc71");
-                } else nextQuestion();
-            } else { monsterCombo = 0; document.getElementById('monster-combo').innerText = `連續答對: 0/3`; nextQuestion(); }
+                    isMonsterActive = false; overlay.style.display = 'none';
+                    monster.cooldown = Date.now() + 10000; showMessage("成功逃脫！", "green");
+                } else triggerQuiz(null, null, true);
+            } else { monsterCombo = 0; triggerQuiz(null, null, true); }
         } else {
             if(choice === correct) {
-                netHitWall(wy, wx); document.getElementById('quiz-overlay').style.display = 'none';
-                showMessage("牆壁 HP -1", "#f5a623");
-            } else { document.getElementById('quiz-overlay').style.display = 'none'; showMessage("攻擊無效...", "#e74c3c"); }
+                wallHits[`${y},${x}`] = (wallHits[`${y},${x}`]||0) + 1;
+                player.score += 10;
+                document.getElementById('score').innerText = player.score;
+                overlay.style.display = 'none';
+                
+                const hp = WALL_HP - (wallHits[`${y},${x}`]||0);
+                if(hp > 0) showMessage(`牆壁受損! 剩餘 HP: ${hp}`, "orange");
+                else showMessage("牆壁破壞成功!", "green");
+            } else {
+                overlay.style.display = 'none';
+                showMessage("攻擊無效...", "red");
+            }
         }
     }, 1500);
 }
 
-function showMessage(msg, color) {
-    const b = document.getElementById('message-box');
-    b.innerText = msg; b.style.borderColor = color; b.style.color = color; b.style.display = 'block';
-    setTimeout(()=>b.style.display='none', 2000);
+function showMessage(txt, color) {
+    const box = document.getElementById('message-box');
+    box.innerText = txt; box.style.borderColor = color; box.style.color = color;
+    box.style.display = 'block';
+    setTimeout(()=>box.style.display='none', 2000);
 }
 
-function triggerJumpscare() {
-    const j = document.getElementById('jumpscare');
-    j.style.display = 'flex'; setTimeout(()=>j.style.display='none', 800);
-}
-
-function win() {
-    isGameOver = true; playAudio('win');
-    document.getElementById('win-screen').style.display = 'flex';
-    document.getElementById('final-score').innerText = player.score;
-    document.getElementById('final-team-score').innerText = player.totalSolved;
-}
-
-function setupControls() {
-    window.addEventListener('keydown', e => { if(e.key) keys[e.key.toLowerCase()] = true; if(e.code==='Space') { keys[' ']=true; e.preventDefault(); }});
-    window.addEventListener('keyup', e => { if(e.key) keys[e.key.toLowerCase()] = false; if(e.code==='Space') keys[' ']=false; });
-    const touchBind = (id, k) => {
+function setupTouchControls() {
+    const bind = (id, key) => {
         const el = document.getElementById(id);
-        el.addEventListener('touchstart', (e)=>{e.preventDefault(); keys[k]=true});
-        el.addEventListener('touchend', (e)=>{e.preventDefault(); keys[k]=false});
+        el.addEventListener('touchstart', (e)=>{e.preventDefault(); keys[key]=true;});
+        el.addEventListener('touchend', (e)=>{e.preventDefault(); keys[key]=false;});
     };
-    touchBind('btn-up', 'arrowup'); touchBind('btn-down', 'arrowdown');
-    touchBind('btn-left', 'arrowleft'); touchBind('btn-right', 'arrowright');
-    document.getElementById('canvas').addEventListener('touchstart', () => {
-        if(document.getElementById('wall-hp-bar').style.display === 'block') { keys[' ']=true; setTimeout(()=>keys[' ']=false, 100); }
-    });
+    bind('btn-up', 'arrowup'); bind('btn-down', 'arrowdown');
+    bind('btn-left', 'arrowleft'); bind('btn-right', 'arrowright');
 }
 </script>
 </body>
